@@ -45,21 +45,27 @@
     html,
     body {
       height: 100%;
+      width: 100%;
+      overflow: hidden;
+      /* Prevent scrolling on iOS */
+      position: fixed;
+      /* Lock body position */
       font-family: 'Inter', sans-serif;
       background: var(--bg);
       color: var(--text);
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── Layout ── */
     #app {
-      min-height: 100svh;
+      height: 100svh;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      padding: 20px 16px;
-      padding-bottom: calc(40px + env(safe-area-inset-bottom));
+      justify-content: center;
+      /* Center content vertically */
+      padding: 16px;
+      position: relative;
     }
 
     .screen {
@@ -239,6 +245,7 @@
     .group-header input[type=checkbox] {
       appearance: none;
       -webkit-appearance: none;
+      appearance: none;
       width: 18px;
       height: 18px;
       border: 2px solid var(--border);
@@ -352,6 +359,7 @@
       transition: border-color .2s;
       font-family: 'Inter', sans-serif;
       -webkit-appearance: none;
+      appearance: none;
     }
 
     #romaji-input:focus {
@@ -378,7 +386,9 @@
       inset: 0;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      /* Move to top to avoid overlap */
+      padding-top: 15svh;
       pointer-events: none;
       z-index: 1000;
       background: rgba(0, 0, 0, 0.4);
@@ -1094,7 +1104,22 @@
     // ══════════════════════════════════════════
     function showScreen(name) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(`screen-${name}`).classList.add('active');
+      const activeScreen = document.getElementById(`screen-${name}`);
+      activeScreen.classList.add('active');
+
+      // Allow scrolling only on select and summary screens
+      if (name === 'select' || name === 'summary') {
+        document.body.style.position = 'static';
+        document.body.style.overflow = 'auto';
+        document.body.style.height = 'auto';
+        document.documentElement.style.overflow = 'auto';
+      } else {
+        document.body.style.position = 'fixed';
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100%';
+        document.documentElement.style.overflow = 'hidden';
+      }
+
       window.scrollTo(0, 0);
     }
 
