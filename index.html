@@ -379,17 +379,15 @@
       padding: 14px 22px;
     }
 
-    /* Feedback overlay */
+    /* Feedback container under input */
     .feedback {
-      position: absolute;
-      inset: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      border-radius: var(--radius);
+      margin-top: 12px;
+      min-height: 50px;
       pointer-events: none;
-      z-index: 10;
-      background: rgba(0, 0, 0, 0.4);
+      background: transparent;
       opacity: 0;
       transition: opacity 0.2s;
     }
@@ -589,7 +587,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>Version: 20260222-1306</p>
+        <p>Version: 20260222-1337</p>
       </footer>
     </div>
 
@@ -608,15 +606,16 @@
       <div class="card kana-display">
         <span class="script-badge" id="script-label">Hiragana</span>
         <span class="kana-char" id="kana-char">あ</span>
-        <div class="feedback" id="feedback">
-          <div class="feedback-bubble" id="feedback-bubble"></div>
-        </div>
       </div>
 
       <div class="input-row">
         <input id="romaji-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none"
           spellcheck="false" placeholder="romaji…" />
         <button class="btn btn-primary" id="submit-btn">→</button>
+      </div>
+
+      <div class="feedback" id="feedback">
+        <div class="feedback-bubble" id="feedback-bubble"></div>
       </div>
     </div>
 
@@ -1021,9 +1020,25 @@
     document.getElementById('romaji-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') submitAnswer();
     });
-    document.getElementById('romaji-input').addEventListener('focus', () => {
-      setTimeout(() => window.scrollTo(0, 0), 100);
-    });
+    const romajiInput = document.getElementById('romaji-input');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+      romajiInput.addEventListener('focus', () => {
+        setTimeout(() => window.scrollTo(0, 0), 50);
+        setTimeout(() => window.scrollTo(0, 0), 300);
+      });
+      window.addEventListener('scroll', () => {
+        if (document.activeElement === romajiInput) {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        }
+      });
+    } else {
+      romajiInput.addEventListener('focus', () => {
+        setTimeout(() => window.scrollTo(0, 0), 100);
+      });
+    }
     document.getElementById('btn-end').addEventListener('click', endSession);
 
     // ══════════════════════════════════════════
