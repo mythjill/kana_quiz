@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Kana Quiz</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d0f14" />
+
+  <!-- iOS meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Kana Quiz" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a23;
+      --surface2: #1e2330;
+      --border: #2c3347;
+      --accent: #7c6fff;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --red: #f87171;
+      --text: #e8eaf0;
+      --muted: #8892a4;
+      --radius: 14px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Layout ── */
+    #app {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px 16px 40px;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -.5px;
+    }
+
+    header p {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(.97);
+    }
+
+    .btn:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: .85rem;
+      padding: 8px 14px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      font-size: .8rem;
+      padding: 6px 10px;
+    }
+
+    /* ── Selection screen ── */
+    .sel-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .group-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .group-header label {
+      font-weight: 600;
+      font-size: .9rem;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .group-header span {
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    .group-entries {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .kana-entry {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--surface);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background .12s;
+    }
+
+    .kana-entry:hover {
+      background: var(--surface2);
+    }
+
+    .kana-chars {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.3;
+    }
+
+    .kana-chars .hira {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 1.05rem;
+    }
+
+    .kana-chars .kata {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .kana-roma {
+      font-size: .78rem;
+      color: var(--accent2);
+      margin-left: auto;
+    }
+
+    /* custom checkbox */
+    .kana-entry input[type=checkbox],
+    .group-header input[type=checkbox] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      position: relative;
+    }
+
+    .kana-entry input[type=checkbox]:checked,
+    .group-header input[type=checkbox]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .kana-entry input[type=checkbox]:checked::after,
+    .group-header input[type=checkbox]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 0px;
+      width: 6px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .group-header input[type=checkbox]:indeterminate {
+      background: var(--surface2);
+      border-color: var(--accent);
+    }
+
+    .group-header input[type=checkbox]:indeterminate::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 6px;
+      width: 8px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .sel-count {
+      font-size: .85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .sel-count strong {
+      color: var(--text);
+    }
+
+    /* ── Quiz screen ── */
+    .quiz-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    .quiz-score {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .kana-display {
+      text-align: center;
+      padding: 28px 16px;
+      position: relative;
+    }
+
+    .script-badge {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      background: rgba(124, 111, 255, .15);
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    .kana-char {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 6rem;
+      line-height: 1;
+      display: block;
+      transition: opacity .15s, transform .15s;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    #romaji-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1.1rem;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color .2s;
+      font-family: 'Inter', sans-serif;
+      -webkit-appearance: none;
+    }
+
+    #romaji-input:focus {
+      border-color: var(--accent);
+    }
+
+    #romaji-input.correct {
+      border-color: var(--green);
+    }
+
+    #romaji-input.wrong {
+      border-color: var(--red);
+    }
+
+    #submit-btn {
+      flex-shrink: 0;
+      width: auto;
+      padding: 14px 22px;
+    }
+
+    /* Feedback overlay */
+    .feedback {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    .feedback-bubble {
+      padding: 18px 32px;
+      border-radius: 20px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      opacity: 0;
+      transform: scale(.85);
+      transition: opacity .18s, transform .18s;
+    }
+
+    .feedback-bubble.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .feedback-bubble.ok {
+      background: rgba(52, 211, 153, .2);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+
+    .feedback-bubble.bad {
+      background: rgba(248, 113, 113, .2);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    /* ── Summary screen ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .stat-box .val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-box .lbl {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .stat-box.full {
+      grid-column: 1 / -1;
+    }
+
+    .mistakes-title {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .mistakes-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+
+    .mistakes-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 500;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mistakes-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    .mistakes-table td.roma {
+      font-family: 'Inter', sans-serif;
+      color: var(--accent2);
+    }
+
+    .mistakes-table td.errs {
+      font-family: 'Inter', sans-serif;
+      color: var(--red);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .memo-bar {
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .memo-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 99px;
+      transition: width .6s ease;
+    }
+
+    .memo-label {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .summary-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-download {
+      background: rgba(52, 211, 153, .15);
+      color: var(--green);
+      border: 1px solid var(--green);
+      width: 100%;
+    }
+
+    /* ── Misc ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+
+    @media (prefers-color-scheme: light) {
+      /* stays dark — intentional */
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- ══════════════ SELECTION SCREEN ══════════════ -->
+    <div id="screen-select" class="screen active">
+      <header>
+        <h1>かな Quiz</h1>
+        <p>Select the kana you want to practice</p>
+      </header>
+
+      <div class="sel-controls">
+        <button class="btn btn-outline" id="btn-all">Select All</button>
+        <button class="btn btn-outline" id="btn-none">Deselect All</button>
+      </div>
+
+      <div id="group-list"><!-- rendered by JS --></div>
+
+      <p class="sel-count" id="sel-count">0 entries selected</p>
+      <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
+    </div>
+
+    <!-- ══════════════ QUIZ SCREEN ══════════════ -->
+    <div id="screen-quiz" class="screen">
+      <header>
+        <h1>かな Quiz</h1>
+      </header>
+
+      <div class="quiz-meta">
+        <span id="q-progress">Q 1</span>
+        <span class="quiz-score" id="q-score">✓ 0 &nbsp; ✗ 0</span>
+        <button class="btn btn-ghost" id="btn-end">End</button>
+      </div>
+
+      <div class="card kana-display">
+        <span class="script-badge" id="script-label">Hiragana</span>
+        <span class="kana-char" id="kana-char">あ</span>
+      </div>
+
+      <div class="input-row">
+        <input id="romaji-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none"
+          spellcheck="false" placeholder="romaji…" />
+        <button class="btn btn-primary" id="submit-btn">→</button>
+      </div>
+    </div>
+
+    <!-- ══════════════ SUMMARY SCREEN ══════════════ -->
+    <div id="screen-summary" class="screen">
+      <header>
+        <h1>Session Summary</h1>
+        <p id="sum-date"></p>
+      </header>
+
+      <div class="stats-grid" id="stats-grid"><!-- filled by JS --></div>
+
+      <div class="card">
+        <div class="memo-label" id="memo-label">Memorized 0 / 0 entries</div>
+        <div class="memo-bar">
+          <div class="memo-bar-fill" id="memo-fill" style="width:0%"></div>
+        </div>
+        <div class="memo-label" style="margin-top:8px;font-size:.72rem">
+          Rule: ≥ 3 shown &amp; all correct for both hiragana and katakana
+        </div>
+      </div>
+
+      <div id="mistakes-section" style="display:none;">
+        <div class="card">
+          <p class="mistakes-title">Characters you got wrong</p>
+          <table class="mistakes-table">
+            <thead>
+              <tr>
+                <th>Hiragana</th>
+                <th>Katakana</th>
+                <th>Romaji</th>
+                <th>Script</th>
+                <th style="text-align:right">Errors</th>
+              </tr>
+            </thead>
+            <tbody id="mistakes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="summary-actions">
+        <button class="btn btn-download" id="btn-download" style="display:none">
+          📄 Download Non-Memorized Kana
+        </button>
+        <button class="btn btn-primary" id="btn-retry">Practice Again</button>
+        <button class="btn btn-outline" id="btn-reselect">Change Selection</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Feedback overlay (outside screens, fixed) -->
+  <div class="feedback" id="feedback">
+    <div class="feedback-bubble" id="feedback-bubble"></div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════
+    //  KANA DATA
+    // ══════════════════════════════════════════
+    const KANA_GROUPS = [
+      {
+        name: "Vowels", entries: [
+          { h: "あ", k: "ア", r: "a" }, { h: "い", k: "イ", r: "i" },
+          { h: "う", k: "ウ", r: "u" }, { h: "え", k: "エ", r: "e" },
+          { h: "お", k: "オ", r: "o" },
+        ]
+      },
+      {
+        name: "K row", entries: [
+          { h: "か", k: "カ", r: "ka" }, { h: "き", k: "キ", r: "ki" },
+          { h: "く", k: "ク", r: "ku" }, { h: "け", k: "ケ", r: "ke" },
+          { h: "こ", k: "コ", r: "ko" },
+        ]
+      },
+      {
+        name: "S row", entries: [
+          { h: "さ", k: "サ", r: "sa" }, { h: "し", k: "シ", r: "shi" },
+          { h: "す", k: "ス", r: "su" }, { h: "せ", k: "セ", r: "se" },
+          { h: "そ", k: "ソ", r: "so" },
+        ]
+      },
+      {
+        name: "T row", entries: [
+          { h: "た", k: "タ", r: "ta" }, { h: "ち", k: "チ", r: "chi" },
+          { h: "つ", k: "ツ", r: "tsu" }, { h: "て", k: "テ", r: "te" },
+          { h: "と", k: "ト", r: "to" },
+        ]
+      },
+      {
+        name: "N row", entries: [
+          { h: "な", k: "ナ", r: "na" }, { h: "に", k: "ニ", r: "ni" },
+          { h: "ぬ", k: "ヌ", r: "nu" }, { h: "ね", k: "ネ", r: "ne" },
+          { h: "の", k: "ノ", r: "no" },
+        ]
+      },
+      {
+        name: "H row", entries: [
+          { h: "は", k: "ハ", r: "ha" }, { h: "ひ", k: "ヒ", r: "hi" },
+          { h: "ふ", k: "フ", r: "fu" }, { h: "へ", k: "ヘ", r: "he" },
+          { h: "ほ", k: "ホ", r: "ho" },
+        ]
+      },
+      {
+        name: "M row", entries: [
+          { h: "ま", k: "マ", r: "ma" }, { h: "み", k: "ミ", r: "mi" },
+          { h: "む", k: "ム", r: "mu" }, { h: "め", k: "メ", r: "me" },
+          { h: "も", k: "モ", r: "mo" },
+        ]
+      },
+      {
+        name: "Y row", entries: [
+          { h: "や", k: "ヤ", r: "ya" }, { h: "ゆ", k: "ユ", r: "yu" },
+          { h: "よ", k: "ヨ", r: "yo" },
+        ]
+      },
+      {
+        name: "R row", entries: [
+          { h: "ら", k: "ラ", r: "ra" }, { h: "り", k: "リ", r: "ri" },
+          { h: "る", k: "ル", r: "ru" }, { h: "れ", k: "レ", r: "re" },
+          { h: "ろ", k: "ロ", r: "ro" },
+        ]
+      },
+      {
+        name: "W row / N", entries: [
+          { h: "わ", k: "ワ", r: "wa" }, { h: "を", k: "ヲ", r: "wo" },
+          { h: "ん", k: "ン", r: "n" },
+        ]
+      },
+      {
+        name: "G row (voiced)", entries: [
+          { h: "が", k: "ガ", r: "ga" }, { h: "ぎ", k: "ギ", r: "gi" },
+          { h: "ぐ", k: "グ", r: "gu" }, { h: "げ", k: "ゲ", r: "ge" },
+          { h: "ご", k: "ゴ", r: "go" },
+        ]
+      },
+      {
+        name: "Z row (voiced)", entries: [
+          { h: "ざ", k: "ザ", r: "za" }, { h: "じ", k: "ジ", r: "ji" },
+          { h: "ず", k: "ズ", r: "zu" }, { h: "ぜ", k: "ゼ", r: "ze" },
+          { h: "ぞ", k: "ゾ", r: "zo" },
+        ]
+      },
+      {
+        name: "D row (voiced)", entries: [
+          { h: "だ", k: "ダ", r: "da" }, { h: "ぢ", k: "ヂ", r: "ji" },
+          { h: "づ", k: "ヅ", r: "zu" }, { h: "で", k: "デ", r: "de" },
+          { h: "ど", k: "ド", r: "do" },
+        ]
+      },
+      {
+        name: "B row (voiced)", entries: [
+          { h: "ば", k: "バ", r: "ba" }, { h: "び", k: "ビ", r: "bi" },
+          { h: "ぶ", k: "ブ", r: "bu" }, { h: "べ", k: "ベ", r: "be" },
+          { h: "ぼ", k: "ボ", r: "bo" },
+        ]
+      },
+      {
+        name: "P row (semi-voiced)", entries: [
+          { h: "ぱ", k: "パ", r: "pa" }, { h: "ぴ", k: "ピ", r: "pi" },
+          { h: "ぷ", k: "プ", r: "pu" }, { h: "ぺ", k: "ペ", r: "pe" },
+          { h: "ぽ", k: "ポ", r: "po" },
+        ]
+      },
+    ];
+
+    const MEMORIZE_THRESHOLD = 3;
+
+    // ══════════════════════════════════════════
+    //  STATE
+    // ══════════════════════════════════════════
+    let selectedEntries = [];   // entries chosen on selection screen
+    let stats = {};             // romaji -> { h: {shown,correct}, k: {shown,correct} }
+    let sessionTotal = 0;
+    let sessionCorrect = 0;
+    let seenChars = new Set();
+    let mistakes = {};    // key -> { entry, script, count }
+    let startTime = null;
+    let currentEntry = null;
+    let currentScript = null;  // 'h' or 'k'
+
+    // ══════════════════════════════════════════
+    //  SELECTION SCREEN
+    // ══════════════════════════════════════════
+    function buildSelectionScreen() {
+      const list = document.getElementById('group-list');
+      list.innerHTML = '';
+
+      KANA_GROUPS.forEach((group, gi) => {
+        const block = document.createElement('div');
+        block.className = 'group-block';
+
+        // group header with master checkbox
+        const hdr = document.createElement('div');
+        hdr.className = 'group-header';
+
+        const masterCb = document.createElement('input');
+        masterCb.type = 'checkbox';
+        masterCb.id = `grp-cb-${gi}`;
+        masterCb.checked = true;
+
+        const lbl = document.createElement('label');
+        lbl.htmlFor = masterCb.id;
+        lbl.textContent = group.name;
+
+        const cnt = document.createElement('span');
+        cnt.id = `grp-cnt-${gi}`;
+
+        hdr.appendChild(masterCb);
+        hdr.appendChild(lbl);
+        hdr.appendChild(cnt);
+        block.appendChild(hdr);
+
+        // entries grid
+        const grid = document.createElement('div');
+        grid.className = 'group-entries';
+
+        group.entries.forEach((entry, ei) => {
+          const row = document.createElement('label');
+          row.className = 'kana-entry';
+
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.dataset.gi = gi;
+          cb.dataset.ei = ei;
+          cb.checked = true;
+          cb.addEventListener('change', () => updateGroupState(gi));
+
+          const chars = document.createElement('div');
+          chars.className = 'kana-chars';
+          chars.innerHTML = `<span class="hira">${entry.h}</span><span class="kata">${entry.k}</span>`;
+
+          const roma = document.createElement('span');
+          roma.className = 'kana-roma';
+          roma.textContent = entry.r;
+
+          row.appendChild(cb);
+          row.appendChild(chars);
+          row.appendChild(roma);
+          grid.appendChild(row);
+        });
+
+        block.appendChild(grid);
+        list.appendChild(block);
+
+        // master checkbox toggles all in group
+        masterCb.addEventListener('change', () => {
+          getGroupCheckboxes(gi).forEach(cb => cb.checked = masterCb.checked);
+          updateGroupState(gi);
+        });
+
+        updateGroupState(gi);
+      });
+
+      updateSelCount();
+    }
+
+    function getGroupCheckboxes(gi) {
+      return Array.from(document.querySelectorAll(`input[data-gi="${gi}"]`));
+    }
+
+    function updateGroupState(gi) {
+      const cbs = getGroupCheckboxes(gi);
+      const total = cbs.length;
+      const checked = cbs.filter(c => c.checked).length;
+      const masterCb = document.getElementById(`grp-cb-${gi}`);
+      const cnt = document.getElementById(`grp-cnt-${gi}`);
+
+      masterCb.checked = checked === total;
+      masterCb.indeterminate = checked > 0 && checked < total;
+      cnt.textContent = `${checked}/${total}`;
+      updateSelCount();
+    }
+
+    function getAllEntryCheckboxes() {
+      return Array.from(document.querySelectorAll('.kana-entry input[type=checkbox]'));
+    }
+
+    function updateSelCount() {
+      const checked = getAllEntryCheckboxes().filter(c => c.checked).length;
+      document.getElementById('sel-count').innerHTML =
+        `<strong>${checked}</strong> entr${checked === 1 ? 'y' : 'ies'} selected`;
+      document.getElementById('btn-start').disabled = checked === 0;
+    }
+
+    document.getElementById('btn-all').addEventListener('click', () => {
+      getAllEntryCheckboxes().forEach(cb => cb.checked = true);
+      KANA_GROUPS.forEach((_, gi) => updateGroupState(gi));
+    });
+
+    document.getElementById('btn-none').addEventListener('click', () => {
+      getAllEntryCheckboxes().forEach(cb => cb.checked = false);
+      KANA_GROUPS.forEach((_, gi) => updateGroupState(gi));
+    });
+
+    document.getElementById('btn-start').addEventListener('click', startQuiz);
+
+    // ══════════════════════════════════════════
+    //  QUIZ
+    // ══════════════════════════════════════════
+    function startQuiz() {
+      // collect selected entries
+      selectedEntries = [];
+      getAllEntryCheckboxes().forEach(cb => {
+        if (cb.checked) {
+          const g = KANA_GROUPS[cb.dataset.gi];
+          selectedEntries.push(g.entries[cb.dataset.ei]);
+        }
+      });
+
+      // init stats
+      stats = {};
+      selectedEntries.forEach(e => {
+        stats[e.r] = stats[e.r] || { h: { shown: 0, correct: 0 }, k: { shown: 0, correct: 0 } };
+      });
+
+      sessionTotal = 0;
+      sessionCorrect = 0;
+      seenChars = new Set();
+      mistakes = {};
+      startTime = Date.now();
+
+      showScreen('quiz');
+      nextQuestion();
+      document.getElementById('romaji-input').focus();
+    }
+
+    function nextQuestion() {
+      currentEntry = selectedEntries[Math.floor(Math.random() * selectedEntries.length)];
+      currentScript = Math.random() < 0.5 ? 'h' : 'k';
+
+      const char = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+      seenChars.add(char);
+
+      document.getElementById('script-label').textContent =
+        currentScript === 'h' ? 'Hiragana' : 'Katakana';
+      document.getElementById('kana-char').textContent = char;
+      document.getElementById('q-progress').textContent = `Q ${sessionTotal + 1}`;
+
+      const inp = document.getElementById('romaji-input');
+      inp.value = '';
+      inp.className = '';
+      inp.focus();
+    }
+
+    function submitAnswer() {
+      const inp = document.getElementById('romaji-input');
+      const answer = inp.value.trim().toLowerCase();
+      if (!answer) return;
+
+      const expected = currentEntry.r;
+      const key = currentScript === 'h' ? 'h' : 'k';
+      const formStat = stats[expected][key];
+
+      sessionTotal++;
+      formStat.shown++;
+
+      const correct = answer === expected;
+
+      if (correct) {
+        sessionCorrect++;
+        formStat.correct++;
+        inp.classList.add('correct');
+        showFeedback(true, expected);
+      } else {
+        inp.classList.add('wrong');
+        showFeedback(false, expected);
+        const mk = `${currentEntry.h}|${expected}`;
+        if (!mistakes[mk]) {
+          mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'Hiragana' : 'Katakana', count: 0 };
+        }
+        mistakes[mk].count++;
+      }
+
+      updateQuizMeta();
+    }
+
+    function updateQuizMeta() {
+      const wrong = sessionTotal - sessionCorrect;
+      document.getElementById('q-score').innerHTML =
+        `✓ ${sessionCorrect} &nbsp; ✗ ${wrong}`;
+    }
+
+    function showFeedback(ok, expected) {
+      const bubble = document.getElementById('feedback-bubble');
+      bubble.textContent = ok ? '✓ Correct!' : `✗  ${expected}`;
+      bubble.className = `feedback-bubble ${ok ? 'ok' : 'bad'}`;
+      requestAnimationFrame(() => {
+        bubble.classList.add('show');
+        setTimeout(() => {
+          bubble.classList.remove('show');
+          setTimeout(() => nextQuestion(), 180);
+        }, 700);
+      });
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', submitAnswer);
+    document.getElementById('romaji-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAnswer();
+    });
+    document.getElementById('btn-end').addEventListener('click', endSession);
+
+    // ══════════════════════════════════════════
+    //  SUMMARY
+    // ══════════════════════════════════════════
+    function isFormMemorized(f) {
+      return f.shown >= MEMORIZE_THRESHOLD && f.correct === f.shown;
+    }
+    function isEntryMemorized(e) {
+      const s = stats[e.r];
+      return s && isFormMemorized(s.h) && isFormMemorized(s.k);
+    }
+
+    function endSession() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      const wrong = sessionTotal - sessionCorrect;
+      const score = sessionTotal ? (sessionCorrect / sessionTotal * 100).toFixed(1) : '—';
+      const now = new Date();
+
+      const memorized = selectedEntries.filter(isEntryMemorized).length;
+      const unmemorized = selectedEntries.length - memorized;
+
+      // stats grid
+      const grid = document.getElementById('stats-grid');
+      const statsData = [
+        { val: sessionTotal, lbl: 'Questions' },
+        { val: sessionCorrect, lbl: 'Correct' },
+        { val: wrong, lbl: 'Incorrect' },
+        { val: seenChars.size, lbl: 'Distinct Chars' },
+        { val: `${mins}m ${String(secs).padStart(2, '0')}s`, lbl: 'Duration', full: false },
+        { val: `${score}%`, lbl: 'Score', full: false },
+      ];
+      grid.innerHTML = statsData.map(s =>
+        `<div class="stat-box${s.full ? ' full' : ''}">
+       <div class="val">${s.val}</div>
+       <div class="lbl">${s.lbl}</div>
+     </div>`
+      ).join('');
+
+      // memorization bar
+      const pct = selectedEntries.length ? (memorized / selectedEntries.length * 100) : 0;
+      document.getElementById('memo-fill').style.width = pct + '%';
+      document.getElementById('memo-label').textContent =
+        `Memorized ${memorized} / ${selectedEntries.length} entries`;
+
+      // mistakes table
+      const mkList = Object.values(mistakes).sort((a, b) => b.count - a.count);
+      if (mkList.length) {
+        document.getElementById('mistakes-section').style.display = 'block';
+        document.getElementById('mistakes-tbody').innerHTML = mkList.map(m =>
+          `<tr>
+        <td>${m.entry.h}</td>
+        <td>${m.entry.k}</td>
+        <td class="roma">${m.entry.r}</td>
+        <td class="roma">${m.script}</td>
+        <td class="errs">${m.count}</td>
+       </tr>`
+        ).join('');
+      } else {
+        document.getElementById('mistakes-section').style.display = 'none';
+      }
+
+      // download button
+      const notMem = selectedEntries.filter(e => !isEntryMemorized(e));
+      const dlBtn = document.getElementById('btn-download');
+      if (notMem.length > 0) {
+        dlBtn.style.display = 'flex';
+        dlBtn.onclick = () => downloadUnmemorized(notMem, now);
+      } else {
+        dlBtn.style.display = 'none';
+      }
+
+      document.getElementById('sum-date').textContent =
+        now.toLocaleString();
+
+      showScreen('summary');
+    }
+
+    function downloadUnmemorized(entries, now) {
+      const pad = n => String(n).padStart(2, '0');
+      const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+      const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const filename = `${date}_${time}.txt`;
+
+      const lines = [
+        `# Non-memorized kana — saved ${now.toLocaleString()}`,
+        `# Rule: >= ${MEMORIZE_THRESHOLD} shown, all correct, for both hiragana & katakana`,
+        '',
+        ...entries.map(e => `${e.h} ${e.k} ${e.r}`),
+      ];
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('btn-retry').addEventListener('click', () => {
+      startQuiz();
+    });
+    document.getElementById('btn-reselect').addEventListener('click', () => {
+      showScreen('select');
+    });
+
+    // ══════════════════════════════════════════
+    //  SCREEN ROUTER
+    // ══════════════════════════════════════════
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(`screen-${name}`).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    // ══════════════════════════════════════════
+    //  INIT
+    // ══════════════════════════════════════════
+    buildSelectionScreen();
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered!', reg))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+
+</html>
