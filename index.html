@@ -53,12 +53,13 @@
 
     /* ── Layout ── */
     #app {
-      min-height: 100dvh;
+      min-height: 100svh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: 20px 16px 40px;
+      padding: 20px 16px;
+      padding-bottom: calc(40px + env(safe-area-inset-bottom));
     }
 
     .screen {
@@ -379,7 +380,14 @@
       align-items: center;
       justify-content: center;
       pointer-events: none;
-      z-index: 99;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .feedback.active {
+      opacity: 1;
     }
 
     .feedback-bubble {
@@ -503,17 +511,27 @@
       margin-top: 6px;
     }
 
+    .memo-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .memo-tag {
+      background: var(--surface2);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
     .summary-actions {
       display: flex;
       flex-direction: column;
       gap: 10px;
-    }
-
-    .btn-download {
-      background: rgba(52, 211, 153, .15);
-      color: var(--green);
-      border: 1px solid var(--green);
-      width: 100%;
     }
 
     /* ── Misc ── */
@@ -595,6 +613,10 @@
         <div class="memo-label" style="margin-top:8px;font-size:.72rem">
           Rule: ≥ 3 shown &amp; all correct for both hiragana and katakana
         </div>
+        <div id="memo-results" style="display:none; margin-top: 15px;">
+          <p class="mistakes-title">Newly Memorized Characters</p>
+          <div class="memo-list" id="memo-list"></div>
+        </div>
       </div>
 
       <div id="mistakes-section" style="display:none;">
@@ -616,9 +638,6 @@
       </div>
 
       <div class="summary-actions">
-        <button class="btn btn-download" id="btn-download" style="display:none">
-          📄 Download Non-Memorized Kana
-        </button>
         <button class="btn btn-primary" id="btn-retry">Practice Again</button>
         <button class="btn btn-outline" id="btn-reselect">Change Selection</button>
       </div>
@@ -959,15 +978,21 @@
     }
 
     function showFeedback(ok, expected) {
+      const overlay = document.getElementById('feedback');
       const bubble = document.getElementById('feedback-bubble');
       bubble.textContent = ok ? '✓ Correct!' : `✗  ${expected}`;
       bubble.className = `feedback-bubble ${ok ? 'ok' : 'bad'}`;
+
+      const duration = ok ? 800 : 2500; // Longer for errors
+
+      overlay.classList.add('active');
       requestAnimationFrame(() => {
         bubble.classList.add('show');
         setTimeout(() => {
           bubble.classList.remove('show');
+          overlay.classList.remove('active');
           setTimeout(() => nextQuestion(), 180);
-        }, 700);
+        }, duration);
       });
     }
 
@@ -996,9 +1021,6 @@
       const score = sessionTotal ? (sessionCorrect / sessionTotal * 100).toFixed(1) : '—';
       const now = new Date();
 
-      const memorized = selectedEntries.filter(isEntryMemorized).length;
-      const unmemorized = selectedEntries.length - memorized;
-
       // stats grid
       const grid = document.getElementById('stats-grid');
       const statsData = [
@@ -1017,10 +1039,23 @@
       ).join('');
 
       // memorization bar
-      const pct = selectedEntries.length ? (memorized / selectedEntries.length * 100) : 0;
+      const newlyMemorized = selectedEntries.filter(isEntryMemorized);
+      const memorizedCount = newlyMemorized.length;
+      const pct = selectedEntries.length ? (memorizedCount / selectedEntries.length * 100) : 0;
       document.getElementById('memo-fill').style.width = pct + '%';
       document.getElementById('memo-label').textContent =
-        `Memorized ${memorized} / ${selectedEntries.length} entries`;
+        `Memorized ${memorizedCount} / ${selectedEntries.length} entries`;
+
+      const memoResults = document.getElementById('memo-results');
+      const memoList = document.getElementById('memo-list');
+      if (newlyMemorized.length > 0) {
+        memoResults.style.display = 'block';
+        memoList.innerHTML = newlyMemorized.map(e =>
+          `<div class="memo-tag">${e.h} / ${e.k} (${e.r})</div>`
+        ).join('');
+      } else {
+        memoResults.style.display = 'none';
+      }
 
       // mistakes table
       const mkList = Object.values(mistakes).sort((a, b) => b.count - a.count);
@@ -1039,43 +1074,13 @@
         document.getElementById('mistakes-section').style.display = 'none';
       }
 
-      // download button
-      const notMem = selectedEntries.filter(e => !isEntryMemorized(e));
-      const dlBtn = document.getElementById('btn-download');
-      if (notMem.length > 0) {
-        dlBtn.style.display = 'flex';
-        dlBtn.onclick = () => downloadUnmemorized(notMem, now);
-      } else {
-        dlBtn.style.display = 'none';
-      }
-
       document.getElementById('sum-date').textContent =
         now.toLocaleString();
 
       showScreen('summary');
     }
 
-    function downloadUnmemorized(entries, now) {
-      const pad = n => String(n).padStart(2, '0');
-      const date = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-      const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      const filename = `${date}_${time}.txt`;
 
-      const lines = [
-        `# Non-memorized kana — saved ${now.toLocaleString()}`,
-        `# Rule: >= ${MEMORIZE_THRESHOLD} shown, all correct, for both hiragana & katakana`,
-        '',
-        ...entries.map(e => `${e.h} ${e.k} ${e.r}`),
-      ];
-
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       startQuiz();
