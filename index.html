@@ -75,7 +75,7 @@
     .screen.active {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 12px;
     }
 
     /* ── Header ── */
@@ -315,8 +315,9 @@
 
     .kana-display {
       text-align: center;
-      padding: 28px 16px;
+      padding: 16px;
       position: relative;
+      overflow: hidden;
     }
 
     .script-badge {
@@ -334,7 +335,7 @@
 
     .kana-char {
       font-family: 'Noto Sans JP', sans-serif;
-      font-size: 6rem;
+      font-size: 5rem;
       line-height: 1;
       display: block;
       transition: opacity .15s, transform .15s;
@@ -380,15 +381,14 @@
 
     /* Feedback overlay */
     .feedback {
-      position: fixed;
+      position: absolute;
       inset: 0;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
-      /* Move to top to avoid overlap */
-      padding-top: 15svh;
+      border-radius: var(--radius);
       pointer-events: none;
-      z-index: 1000;
+      z-index: 10;
       background: rgba(0, 0, 0, 0.4);
       opacity: 0;
       transition: opacity 0.2s;
@@ -589,7 +589,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>Version: 20260222-1235</p>
+        <p>Version: 20260222-1306</p>
       </footer>
     </div>
 
@@ -608,6 +608,9 @@
       <div class="card kana-display">
         <span class="script-badge" id="script-label">Hiragana</span>
         <span class="kana-char" id="kana-char">あ</span>
+        <div class="feedback" id="feedback">
+          <div class="feedback-bubble" id="feedback-bubble"></div>
+        </div>
       </div>
 
       <div class="input-row">
@@ -666,10 +669,7 @@
 
   </div>
 
-  <!-- Feedback overlay (outside screens, fixed) -->
-  <div class="feedback" id="feedback">
-    <div class="feedback-bubble" id="feedback-bubble"></div>
-  </div>
+  <!-- Feedback overlay moved inside kana-display -->
 
   <script>
     // ══════════════════════════════════════════
@@ -1020,6 +1020,9 @@
     document.getElementById('submit-btn').addEventListener('click', submitAnswer);
     document.getElementById('romaji-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') submitAnswer();
+    });
+    document.getElementById('romaji-input').addEventListener('focus', () => {
+      setTimeout(() => window.scrollTo(0, 0), 100);
     });
     document.getElementById('btn-end').addEventListener('click', endSession);
 
