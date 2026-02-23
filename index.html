@@ -155,6 +155,36 @@
       padding: 6px 10px;
     }
 
+    /* ── Mode Toggle ── */
+    .mode-toggle {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .mode-toggle button {
+      padding: 8px 4px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-toggle button.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border);
+    }
+
     /* ── Selection screen ── */
     .sel-controls {
       display: flex;
@@ -379,6 +409,107 @@
       padding: 14px 22px;
     }
 
+    .easy-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+
+    .easy-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.1s, background 0.1s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .easy-btn.simple-btn {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 1.6rem;
+    }
+
+    .easy-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* ── Drawing Area ── */
+    .draw-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #draw-canvas {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .draw-controls {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    .draw-controls .btn {
+      flex: 1;
+    }
+
+    .self-grade {
+      display: none;
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+    }
+
+    .self-grade .btn {
+      flex: 1;
+    }
+
+    .btn-correct {
+      background: rgba(52, 211, 153, .15);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+
+    .btn-wrong {
+      background: rgba(248, 113, 113, .15);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+
+    .easy-btn.correct {
+      background: rgba(52, 211, 153, .2);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .easy-btn.wrong {
+      background: rgba(248, 113, 113, .2);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .easy-btn:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
+
     /* Feedback container under input */
     .feedback {
       display: flex;
@@ -576,6 +707,15 @@
         <p>Select the kana you want to practice</p>
       </header>
 
+      <div class="mode-toggle">
+        <button id="mode-normal" class="active" style="font-size: 0.70rem;">Type<br>(K→R)</button>
+        <button id="mode-easy" style="font-size: 0.70rem;">Select<br>(K→R)</button>
+        <button id="mode-easy-kk" style="font-size: 0.70rem;">Select<br>(K→K)</button>
+        <button id="mode-simple" style="font-size: 0.70rem;">Select<br>(R→K)</button>
+        <button id="mode-draw" style="font-size: 0.70rem;">Draw<br>(R→K)</button>
+        <button id="mode-draw-kk" style="font-size: 0.70rem;">Draw<br>(K→K)</button>
+      </div>
+
       <div class="sel-controls">
         <button class="btn btn-outline" id="btn-all">Select All</button>
         <button class="btn btn-outline" id="btn-none">Deselect All</button>
@@ -587,7 +727,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>Version: 20260222-1337</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260222-2105</p>
       </footer>
     </div>
 
@@ -608,10 +748,24 @@
         <span class="kana-char" id="kana-char">あ</span>
       </div>
 
-      <div class="input-row">
+      <div class="input-row" id="input-row">
         <input id="romaji-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none"
           spellcheck="false" placeholder="romaji…" />
         <button class="btn btn-primary" id="submit-btn">→</button>
+      </div>
+
+      <div class="easy-grid" id="easy-grid" style="display:none;"></div>
+
+      <div class="draw-area" id="draw-area" style="display:none;">
+        <canvas id="draw-canvas" width="280" height="280"></canvas>
+        <div class="draw-controls" id="draw-submit-area">
+          <button class="btn btn-outline" id="btn-draw-clear">Clear</button>
+          <button class="btn btn-primary" id="btn-draw-show">Show Answer</button>
+        </div>
+        <div class="self-grade" id="self-grade" style="display:none;">
+          <button class="btn btn-wrong" id="btn-self-wrong">Incorrect</button>
+          <button class="btn btn-correct" id="btn-self-correct">Correct</button>
+        </div>
       </div>
 
       <div class="feedback" id="feedback">
@@ -785,6 +939,7 @@
     // ══════════════════════════════════════════
     //  STATE
     // ══════════════════════════════════════════
+    let currentMode = 'normal'; // 'normal', 'easy', 'simple', 'draw'
     let selectedEntries = [];   // entries chosen on selection screen
     let stats = {};             // romaji -> { h: {shown,correct}, k: {shown,correct} }
     let sessionTotal = 0;
@@ -794,6 +949,100 @@
     let startTime = null;
     let currentEntry = null;
     let currentScript = null;  // 'h' or 'k'
+
+    // ══════════════════════════════════════════
+    //  DRAWING LOGIC
+    // ══════════════════════════════════════════
+    const canvas = document.getElementById('draw-canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function clearCanvas() {
+      ctx.fillStyle = '#1e2330';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    clearCanvas();
+
+    function startDraw(e) {
+      isDrawing = true;
+      const pos = getMousePos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pos = getMousePos(e);
+
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.strokeStyle = '#e8eaf0';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function stopDraw() {
+      isDrawing = false;
+      ctx.beginPath();
+    }
+
+    function getMousePos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      if (evt.touches && evt.touches.length > 0) {
+        return {
+          x: (evt.touches[0].clientX - rect.left) * scaleX,
+          y: (evt.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (evt.clientX - rect.left) * scaleX,
+        y: (evt.clientY - rect.top) * scaleY
+      };
+    }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseout', stopDraw);
+
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw, { passive: false });
+    canvas.addEventListener('touchcancel', stopDraw, { passive: false });
+
+    document.getElementById('btn-draw-clear').addEventListener('click', clearCanvas);
+    document.getElementById('btn-draw-show').addEventListener('click', () => {
+      // Reveal answer in kana-char
+      const charEl = document.getElementById('kana-char');
+
+      let ans = '';
+      if (currentMode === 'draw-kk') {
+        ans = currentScript === 'h' ? currentEntry.k : currentEntry.h;
+      } else {
+        ans = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+      }
+
+      charEl.style.fontFamily = "'Noto Sans JP', sans-serif";
+      charEl.style.color = "";
+      charEl.innerHTML = `<span>${ans}</span>`;
+
+      document.getElementById('draw-submit-area').style.display = 'none';
+      document.getElementById('self-grade').style.display = 'flex';
+    });
+
+    document.getElementById('btn-self-correct').addEventListener('click', () => submitAnswer(null, null, true));
+    document.getElementById('btn-self-wrong').addEventListener('click', () => submitAnswer(null, null, false));
 
     // ══════════════════════════════════════════
     //  SELECTION SCREEN
@@ -909,6 +1158,21 @@
       KANA_GROUPS.forEach((_, gi) => updateGroupState(gi));
     });
 
+    [
+      { id: 'mode-normal', val: 'normal' },
+      { id: 'mode-easy', val: 'easy' },
+      { id: 'mode-easy-kk', val: 'easy-kk' },
+      { id: 'mode-simple', val: 'simple' },
+      { id: 'mode-draw', val: 'draw' },
+      { id: 'mode-draw-kk', val: 'draw-kk' }
+    ].forEach(m => {
+      document.getElementById(m.id).addEventListener('click', (e) => {
+        currentMode = m.val;
+        document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+      });
+    });
+
     document.getElementById('btn-start').addEventListener('click', startQuiz);
 
     // ══════════════════════════════════════════
@@ -945,42 +1209,151 @@
       currentEntry = selectedEntries[Math.floor(Math.random() * selectedEntries.length)];
       currentScript = Math.random() < 0.5 ? 'h' : 'k';
 
-      const char = currentScript === 'h' ? currentEntry.h : currentEntry.k;
-      seenChars.add(char);
+      const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
+      const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
 
-      document.getElementById('script-label').textContent =
-        currentScript === 'h' ? 'Hiragana' : 'Katakana';
-      document.getElementById('kana-char').textContent = char;
+      const char = isSimpleLike ? currentEntry.r : (currentScript === 'h' ? currentEntry.h : currentEntry.k);
+
+      // Still consider the target script as seen for stats, even if showing romaji
+      const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+      seenChars.add(scriptChar);
+
+      let headerLabel = currentScript === 'h' ? 'Hiragana' : 'Katakana';
+      if (isSimpleLike) {
+        headerLabel = 'Romaji → ' + (currentScript === 'h' ? 'Hiragana' : 'Katakana');
+      } else if (isKKLike) {
+        headerLabel = (currentScript === 'h' ? 'Hiragana' : 'Katakana') + ' → ' + (currentScript === 'h' ? 'Katakana' : 'Hiragana');
+      }
+      document.getElementById('script-label').textContent = headerLabel;
+
+      // Update font styling for the display character
+      const charEl = document.getElementById('kana-char');
+      charEl.style.fontFamily = isSimpleLike ? "'Inter', sans-serif" : "'Noto Sans JP', sans-serif";
+      charEl.style.color = isSimpleLike ? "var(--accent2)" : "";
+
+      if (currentMode === 'draw' || currentMode === 'draw-kk') {
+        charEl.innerHTML = `<span>${char}</span><div style="font-size: 0.2em; color: var(--muted); margin-top: 10px;">Draw above</div>`;
+      } else {
+        charEl.textContent = char;
+      }
+
       document.getElementById('q-progress').textContent = `Q ${sessionTotal + 1}`;
 
-      const inp = document.getElementById('romaji-input');
-      inp.value = '';
-      inp.className = '';
-      inp.focus();
+      const inpRow = document.getElementById('input-row');
+      const grid = document.getElementById('easy-grid');
+      const drawArea = document.getElementById('draw-area');
+
+      // Reset draw block elements
+      drawArea.style.display = 'none';
+      grid.style.display = 'none';
+      inpRow.style.display = 'none';
+
+      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk') {
+        inpRow.style.display = 'none';
+        grid.style.display = 'grid';
+        grid.innerHTML = '';
+
+        // determine options pool precisely from user selection
+        let poolItems = [];
+        let targetAns = '';
+
+        if (currentMode === 'simple') {
+          poolItems = selectedEntries.map(e => currentScript === 'h' ? e.h : e.k);
+          targetAns = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+        } else if (currentMode === 'easy-kk') {
+          poolItems = selectedEntries.map(e => currentScript === 'h' ? e.k : e.h);
+          targetAns = currentScript === 'h' ? currentEntry.k : currentEntry.h;
+        } else {
+          // 'easy' mode
+          poolItems = selectedEntries.map(e => e.r);
+          targetAns = currentEntry.r;
+        }
+
+        let pool = [...new Set(poolItems)];
+        let optionsCount = Math.min(10, pool.length);
+
+        let options = [targetAns];
+
+        while (options.length < optionsCount) {
+          let cand = pool[Math.floor(Math.random() * pool.length)];
+          if (!options.includes(cand)) options.push(cand);
+        }
+        options.sort(() => Math.random() - 0.5); // shuffle
+
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = (currentMode === 'simple' || currentMode === 'easy-kk') ? 'easy-btn simple-btn' : 'easy-btn';
+          btn.textContent = opt;
+          btn.onclick = () => submitAnswer(opt, btn);
+          grid.appendChild(btn);
+        });
+      } else if (currentMode === 'draw' || currentMode === 'draw-kk') {
+        drawArea.style.display = 'flex';
+        document.getElementById('draw-submit-area').style.display = 'flex';
+        document.getElementById('self-grade').style.display = 'none';
+        clearCanvas();
+      } else {
+        inpRow.style.display = 'flex';
+        grid.style.display = 'none';
+        const inp = document.getElementById('romaji-input');
+        inp.value = '';
+        inp.className = '';
+        inp.focus();
+      }
     }
 
-    function submitAnswer() {
+    function submitAnswer(optAnswer = null, btnEl = null, selfGradedCorrect = null) {
       const inp = document.getElementById('romaji-input');
-      const answer = inp.value.trim().toLowerCase();
-      if (!answer) return;
+      const answer = (optAnswer || inp.value).trim().toLowerCase();
+      // Only block empty answers for normal text mode
+      if (!answer && currentMode === 'normal') return;
 
-      const expected = currentEntry.r;
+      const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
+      const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
+
+      let expected = currentEntry.r;
+      if (isSimpleLike) {
+        expected = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+      } else if (isKKLike) {
+        expected = currentScript === 'h' ? currentEntry.k : currentEntry.h;
+      }
       const key = currentScript === 'h' ? 'h' : 'k';
-      const formStat = stats[expected][key];
+      const formStat = stats[currentEntry.r][key];
 
       sessionTotal++;
       formStat.shown++;
 
-      const correct = answer === expected;
+      let correct = false;
+      if (currentMode === 'draw' || currentMode === 'draw-kk') {
+        correct = selfGradedCorrect;
+      } else {
+        correct = answer === expected;
+      }
+
+      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk') {
+        document.querySelectorAll('.easy-btn').forEach(b => b.disabled = true);
+        if (correct) {
+          btnEl.classList.add('correct');
+        } else {
+          btnEl.classList.add('wrong');
+          document.querySelectorAll('.easy-btn').forEach(b => {
+            if (b.textContent === expected) b.classList.add('correct');
+          });
+        }
+      } else if (currentMode === 'normal') {
+        if (correct) inp.classList.add('correct');
+        else inp.classList.add('wrong');
+      }
 
       if (correct) {
         sessionCorrect++;
         formStat.correct++;
-        inp.classList.add('correct');
-        showFeedback(true, expected);
+        if (currentMode === 'draw' || currentMode === 'draw-kk') setTimeout(() => nextQuestion(), 100);
+        else showFeedback(true, expected);
       } else {
-        inp.classList.add('wrong');
-        showFeedback(false, expected);
+        if (currentMode === 'draw' || currentMode === 'draw-kk') setTimeout(() => nextQuestion(), 100);
+        else showFeedback(false, expected);
+
         const mk = `${currentEntry.h}|${expected}`;
         if (!mistakes[mk]) {
           mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'Hiragana' : 'Katakana', count: 0 };
@@ -1016,7 +1389,7 @@
       });
     }
 
-    document.getElementById('submit-btn').addEventListener('click', submitAnswer);
+    document.getElementById('submit-btn').addEventListener('click', () => submitAnswer());
     document.getElementById('romaji-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') submitAnswer();
     });
