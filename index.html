@@ -334,11 +334,21 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
       font-size: .82rem;
       color: var(--muted);
     }
 
+    .quiz-meta>* {
+      flex-shrink: 0;
+    }
+
     .quiz-score {
+      flex-shrink: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       font-weight: 600;
       color: var(--text);
     }
@@ -694,6 +704,113 @@
     @media (prefers-color-scheme: light) {
       /* stays dark — intentional */
     }
+
+    @keyframes drawStrokeAnim {
+      0% {
+        stroke-dashoffset: 350;
+      }
+
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .stroke-anim {
+      stroke-dasharray: 350;
+      stroke-dashoffset: 350;
+      animation: drawStrokeAnim 1.0s ease-in-out forwards;
+    }
+
+    /* ─── Progress Dashboard ─── */
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .kana-mastery-group {
+      margin-bottom: 18px;
+    }
+
+    .kana-mastery-group h3 {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .kana-mastery-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .kana-mastery-cell {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-weight: bold;
+      cursor: default;
+      border: 1px solid transparent;
+      transition: transform 0.15s;
+    }
+
+    .kana-mastery-cell sub {
+      font-size: 0.48rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      color: inherit;
+      opacity: 0.7;
+      margin-top: -3px;
+    }
+
+    .mastery-0 {
+      background: var(--surface2);
+      color: var(--muted);
+      border-color: var(--border);
+    }
+
+    .mastery-1 {
+      background: #4a2020;
+      color: #ff8888;
+      border-color: #aa4444;
+    }
+
+    .mastery-2 {
+      background: #3a3a10;
+      color: #ddcc44;
+      border-color: #887722;
+    }
+
+    .mastery-3 {
+      background: #123a14;
+      color: #66ee77;
+      border-color: #338844;
+    }
+
+    .progress-legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      font-size: 0.72rem;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      margin-right: 4px;
+    }
   </style>
 </head>
 
@@ -702,34 +819,51 @@
 
     <!-- ══════════════ SELECTION SCREEN ══════════════ -->
     <div id="screen-select" class="screen active">
-      <header>
+      <header style="position: relative;">
+        <button id="btn-lang" onclick="toggleLang()"
+          style="position: absolute; top: 0; right: 0; padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer;">EN</button>
         <h1>かな Quiz</h1>
-        <p>Select the kana you want to practice</p>
+        <p data-i18n="sel_subtitle">Select the kana you want to practice</p>
       </header>
 
       <div class="mode-toggle">
-        <button id="mode-normal" class="active" style="font-size: 0.70rem;">Type<br>(K→R)</button>
-        <button id="mode-easy" style="font-size: 0.70rem;">Select<br>(K→R)</button>
-        <button id="mode-easy-kk" style="font-size: 0.70rem;">Select<br>(K→K)</button>
-        <button id="mode-audio-select" style="font-size: 0.70rem;">Select<br>(🔊→K)</button>
-        <button id="mode-simple" style="font-size: 0.70rem;">Select<br>(R→K)</button>
-        <button id="mode-draw" style="font-size: 0.70rem;">Draw<br>(R→K)</button>
-        <button id="mode-draw-kk" style="font-size: 0.70rem;">Draw<br>(K→K)</button>
-        <button id="mode-audio-draw" style="font-size: 0.70rem;">Draw<br>(🔊→K)</button>
+        <button id="mode-normal" class="active" style="font-size: 0.65rem;"
+          data-i18n="mode_type_kr">Type<br>(Kana→R)</button>
+        <button id="mode-easy" style="font-size: 0.65rem;" data-i18n="mode_sel_kr">Select<br>(Kana→R)</button>
+        <button id="mode-easy-kk" style="font-size: 0.65rem;" data-i18n="mode_sel_hk">Select<br>(H↔K)</button>
+        <button id="mode-audio-select" style="font-size: 0.65rem;" data-i18n="mode_sel_ak">Select<br>(🔊→Kana)</button>
+        <button id="mode-simple" style="font-size: 0.65rem;" data-i18n="mode_sel_rk">Select<br>(R→Kana)</button>
+        <button id="mode-draw" style="font-size: 0.65rem;" data-i18n="mode_draw_rk">Draw<br>(R→Kana)</button>
+        <button id="mode-draw-kk" style="font-size: 0.65rem;" data-i18n="mode_draw_hk">Draw<br>(H↔K)</button>
+        <button id="mode-audio-draw" style="font-size: 0.65rem;" data-i18n="mode_draw_ak">Draw<br>(🔊→Kana)</button>
       </div>
 
-      <div class="sel-controls">
-        <button class="btn btn-outline" id="btn-all">Select All</button>
-        <button class="btn btn-outline" id="btn-none">Deselect All</button>
+      <div class="sel-controls" style="flex-wrap: wrap; gap: 6px;">
+        <button class="btn btn-outline" id="btn-all" data-i18n="sel_all">Select All</button>
+        <button class="btn btn-outline" id="btn-none" data-i18n="sel_none">Deselect All</button>
+        <button class="btn btn-outline" id="btn-review-weak" data-i18n="sel_review"
+          style="color: #5eead4; border-color: #5eead4;">Review Weaknesses</button>
+        <button class="btn btn-outline" id="btn-progress" data-i18n="sel_progress"
+          style="color: #38bdf8; border-color: #38bdf8;">Progress</button>
+        <button class="btn btn-outline" id="btn-reset-stats" data-i18n="sel_reset"
+          style="color: var(--accent1); border-color: var(--accent1);">Reset Stats</button>
       </div>
 
       <div id="group-list"><!-- rendered by JS --></div>
+
+      <div class="sel-controls" style="margin-top: 15px; display: flex; align-items: center;">
+        <label
+          style="color: var(--text); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="cb-sprint" style="cursor: pointer;"> <span data-i18n="sel_sprint">Timed Sprint
+            (60s)</span>
+        </label>
+      </div>
 
       <p class="sel-count" id="sel-count">0 entries selected</p>
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260222-2114</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260222-2307</p>
       </footer>
     </div>
 
@@ -739,10 +873,11 @@
         <h1>かな Quiz</h1>
       </header>
 
-      <div class="quiz-meta">
+      <div class="quiz-meta" style="align-items: center;">
         <span id="q-progress">Q 1</span>
         <span class="quiz-score" id="q-score">✓ 0 &nbsp; ✗ 0</span>
-        <button class="btn btn-ghost" id="btn-end">End</button>
+        <span id="q-timer" style="display:none; color: var(--accent1); font-weight: bold;"></span>
+        <button class="btn btn-ghost" id="btn-end" style="margin-left: auto;" data-i18n="quiz_end">End</button>
       </div>
 
       <div class="card kana-display">
@@ -766,12 +901,12 @@
       <div class="draw-area" id="draw-area" style="display:none;">
         <canvas id="draw-canvas" width="280" height="280"></canvas>
         <div class="draw-controls" id="draw-submit-area">
-          <button class="btn btn-outline" id="btn-draw-clear">Clear</button>
-          <button class="btn btn-primary" id="btn-draw-show">Show Answer</button>
+          <button class="btn btn-outline" id="btn-draw-clear" data-i18n="draw_clear">Clear</button>
+          <button class="btn btn-primary" id="btn-draw-show" data-i18n="draw_show">Show Answer</button>
         </div>
         <div class="self-grade" id="self-grade" style="display:none;">
-          <button class="btn btn-wrong" id="btn-self-wrong">Incorrect</button>
-          <button class="btn btn-correct" id="btn-self-correct">Correct</button>
+          <button class="btn btn-wrong" id="btn-self-wrong" data-i18n="draw_wrong">Incorrect</button>
+          <button class="btn btn-correct" id="btn-self-correct" data-i18n="draw_correct">Correct</button>
         </div>
       </div>
 
@@ -783,7 +918,7 @@
     <!-- ══════════════ SUMMARY SCREEN ══════════════ -->
     <div id="screen-summary" class="screen">
       <header>
-        <h1>Session Summary</h1>
+        <h1 data-i18n="sum_title">Session Summary</h1>
         <p id="sum-date"></p>
       </header>
 
@@ -794,26 +929,26 @@
         <div class="memo-bar">
           <div class="memo-bar-fill" id="memo-fill" style="width:0%"></div>
         </div>
-        <div class="memo-label" style="margin-top:8px;font-size:.72rem">
+        <div class="memo-label" style="margin-top:8px;font-size:.72rem" data-i18n="sum_memo_rule">
           Rule: ≥ 3 shown &amp; all correct for both hiragana and katakana
         </div>
         <div id="memo-results" style="display:none; margin-top: 15px;">
-          <p class="mistakes-title">Newly Memorized Characters</p>
+          <p class="mistakes-title" data-i18n="sum_newly_mem">Newly Memorized Characters</p>
           <div class="memo-list" id="memo-list"></div>
         </div>
       </div>
 
       <div id="mistakes-section" style="display:none;">
         <div class="card">
-          <p class="mistakes-title">Characters you got wrong</p>
+          <p class="mistakes-title" data-i18n="sum_got_wrong">Characters you got wrong</p>
           <table class="mistakes-table">
             <thead>
               <tr>
-                <th>Hiragana</th>
-                <th>Katakana</th>
-                <th>Romaji</th>
-                <th>Script</th>
-                <th style="text-align:right">Errors</th>
+                <th data-i18n="lbl_hiragana">Hiragana</th>
+                <th data-i18n="lbl_katakana">Katakana</th>
+                <th data-i18n="th_romaji">Romaji</th>
+                <th data-i18n="th_script">Script</th>
+                <th style="text-align:right" data-i18n="th_errors">Errors</th>
               </tr>
             </thead>
             <tbody id="mistakes-tbody"></tbody>
@@ -822,9 +957,28 @@
       </div>
 
       <div class="summary-actions">
-        <button class="btn btn-primary" id="btn-retry">Practice Again</button>
-        <button class="btn btn-outline" id="btn-reselect">Change Selection</button>
+        <button class="btn btn-primary" id="btn-retry" data-i18n="sum_retry">Practice Again</button>
+        <button class="btn btn-outline" id="btn-reselect" data-i18n="sum_reselect">Change Selection</button>
       </div>
+    </div>
+
+    <!-- ══════════════ PROGRESS DASHBOARD ══════════════ -->
+    <div id="screen-progress" class="screen" style="padding: 20px 0;">
+      <div class="progress-header">
+        <h2 style="margin: 0;" data-i18n="prog_title">Progress</h2>
+        <button class="btn btn-ghost" id="btn-progress-back" data-i18n="prog_back">&larr; Back</button>
+      </div>
+      <div class="progress-legend">
+        <span><span class="legend-dot" style="background:#4a2020; border:1px solid #aa4444;"></span><span
+            data-i18n="prog_struggling">Struggling</span></span>
+        <span><span class="legend-dot" style="background:#3a3a10; border:1px solid #ddcc44;"></span><span
+            data-i18n="prog_inprogress">In Progress</span></span>
+        <span><span class="legend-dot" style="background:#123a14; border:1px solid #338844;"></span><span
+            data-i18n="prog_memorized">Memorized</span></span>
+        <span><span class="legend-dot" style="background:var(--surface2); border:1px solid var(--border);"></span><span
+            data-i18n="prog_unseen">Unseen</span></span>
+      </div>
+      <div id="progress-content"><!-- filled by JS --></div>
     </div>
 
   </div>
@@ -837,108 +991,131 @@
     // ══════════════════════════════════════════
     const KANA_GROUPS = [
       {
-        name: "Vowels", entries: [
+        name: "Vowels", nameKey: "grp_vowels", entries: [
           { h: "あ", k: "ア", r: "a" }, { h: "い", k: "イ", r: "i" },
           { h: "う", k: "ウ", r: "u" }, { h: "え", k: "エ", r: "e" },
           { h: "お", k: "オ", r: "o" },
         ]
       },
       {
-        name: "K row", entries: [
+        name: "K row", nameKey: "grp_k", entries: [
           { h: "か", k: "カ", r: "ka" }, { h: "き", k: "キ", r: "ki" },
           { h: "く", k: "ク", r: "ku" }, { h: "け", k: "ケ", r: "ke" },
           { h: "こ", k: "コ", r: "ko" },
         ]
       },
       {
-        name: "S row", entries: [
-          { h: "さ", k: "サ", r: "sa" }, { h: "し", k: "シ", r: "shi" },
+        name: "S row", nameKey: "grp_s", entries: [
+          { h: "さ", k: "サ", r: "sa" }, { h: "し", k: "シ", r: "shi", alt: ["si"] },
           { h: "す", k: "ス", r: "su" }, { h: "せ", k: "セ", r: "se" },
           { h: "そ", k: "ソ", r: "so" },
         ]
       },
       {
-        name: "T row", entries: [
-          { h: "た", k: "タ", r: "ta" }, { h: "ち", k: "チ", r: "chi" },
-          { h: "つ", k: "ツ", r: "tsu" }, { h: "て", k: "テ", r: "te" },
+        name: "T row", nameKey: "grp_t", entries: [
+          { h: "た", k: "タ", r: "ta" }, { h: "ち", k: "チ", r: "chi", alt: ["ti"] },
+          { h: "つ", k: "ツ", r: "tsu", alt: ["tu"] }, { h: "て", k: "テ", r: "te" },
           { h: "と", k: "ト", r: "to" },
         ]
       },
       {
-        name: "N row", entries: [
+        name: "N row", nameKey: "grp_n", entries: [
           { h: "な", k: "ナ", r: "na" }, { h: "に", k: "ニ", r: "ni" },
           { h: "ぬ", k: "ヌ", r: "nu" }, { h: "ね", k: "ネ", r: "ne" },
           { h: "の", k: "ノ", r: "no" },
         ]
       },
       {
-        name: "H row", entries: [
+        name: "H row", nameKey: "grp_h", entries: [
           { h: "は", k: "ハ", r: "ha" }, { h: "ひ", k: "ヒ", r: "hi" },
-          { h: "ふ", k: "フ", r: "fu" }, { h: "へ", k: "ヘ", r: "he" },
+          { h: "ふ", k: "フ", r: "fu", alt: ["hu"] }, { h: "へ", k: "ヘ", r: "he" },
           { h: "ほ", k: "ホ", r: "ho" },
         ]
       },
       {
-        name: "M row", entries: [
+        name: "M row", nameKey: "grp_m", entries: [
           { h: "ま", k: "マ", r: "ma" }, { h: "み", k: "ミ", r: "mi" },
           { h: "む", k: "ム", r: "mu" }, { h: "め", k: "メ", r: "me" },
           { h: "も", k: "モ", r: "mo" },
         ]
       },
       {
-        name: "Y row", entries: [
+        name: "Y row", nameKey: "grp_y", entries: [
           { h: "や", k: "ヤ", r: "ya" }, { h: "ゆ", k: "ユ", r: "yu" },
           { h: "よ", k: "ヨ", r: "yo" },
         ]
       },
       {
-        name: "R row", entries: [
+        name: "R row", nameKey: "grp_r", entries: [
           { h: "ら", k: "ラ", r: "ra" }, { h: "り", k: "リ", r: "ri" },
           { h: "る", k: "ル", r: "ru" }, { h: "れ", k: "レ", r: "re" },
           { h: "ろ", k: "ロ", r: "ro" },
         ]
       },
       {
-        name: "W row / N", entries: [
+        name: "W row / N", nameKey: "grp_w", entries: [
           { h: "わ", k: "ワ", r: "wa" }, { h: "を", k: "ヲ", r: "wo" },
           { h: "ん", k: "ン", r: "n" },
         ]
       },
       {
-        name: "G row (voiced)", entries: [
+        name: "G row (voiced)", nameKey: "grp_g", entries: [
           { h: "が", k: "ガ", r: "ga" }, { h: "ぎ", k: "ギ", r: "gi" },
           { h: "ぐ", k: "グ", r: "gu" }, { h: "げ", k: "ゲ", r: "ge" },
           { h: "ご", k: "ゴ", r: "go" },
         ]
       },
       {
-        name: "Z row (voiced)", entries: [
-          { h: "ざ", k: "ザ", r: "za" }, { h: "じ", k: "ジ", r: "ji" },
+        name: "Z row (voiced)", nameKey: "grp_z", entries: [
+          { h: "ざ", k: "ザ", r: "za" }, { h: "じ", k: "ジ", r: "ji", alt: ["zi"] },
           { h: "ず", k: "ズ", r: "zu" }, { h: "ぜ", k: "ゼ", r: "ze" },
           { h: "ぞ", k: "ゾ", r: "zo" },
         ]
       },
       {
-        name: "D row (voiced)", entries: [
+        name: "D row (voiced)", nameKey: "grp_d", entries: [
           { h: "だ", k: "ダ", r: "da" }, { h: "ぢ", k: "ヂ", r: "ji" },
           { h: "づ", k: "ヅ", r: "zu" }, { h: "で", k: "デ", r: "de" },
           { h: "ど", k: "ド", r: "do" },
         ]
       },
       {
-        name: "B row (voiced)", entries: [
+        name: "B row (voiced)", nameKey: "grp_b", entries: [
           { h: "ば", k: "バ", r: "ba" }, { h: "び", k: "ビ", r: "bi" },
           { h: "ぶ", k: "ブ", r: "bu" }, { h: "べ", k: "ベ", r: "be" },
           { h: "ぼ", k: "ボ", r: "bo" },
         ]
       },
       {
-        name: "P row (semi-voiced)", entries: [
+        name: "P row (semi-voiced)", nameKey: "grp_p", entries: [
           { h: "ぱ", k: "パ", r: "pa" }, { h: "ぴ", k: "ピ", r: "pi" },
           { h: "ぷ", k: "プ", r: "pu" }, { h: "ぺ", k: "ペ", r: "pe" },
           { h: "ぽ", k: "ポ", r: "po" },
         ]
       },
+      {
+        name: "Contracted (K, S, T, N)", nameKey: "grp_con1", entries: [
+          { h: "きゃ", k: "キャ", r: "kya" }, { h: "きゅ", k: "キュ", r: "kyu" }, { h: "きょ", k: "キョ", r: "kyo" },
+          { h: "しゃ", k: "シャ", r: "sha", alt: ["sya"] }, { h: "しゅ", k: "シュ", r: "shu", alt: ["syu"] }, { h: "しょ", k: "ショ", r: "sho", alt: ["syo"] },
+          { h: "ちゃ", k: "チャ", r: "cha", alt: ["tya"] }, { h: "ちゅ", k: "チュ", r: "chu", alt: ["tyu"] }, { h: "ちょ", k: "チョ", r: "cho", alt: ["tyo"] },
+          { h: "にゃ", k: "ニャ", r: "nya" }, { h: "にゅ", k: "ニュ", r: "nyu" }, { h: "にょ", k: "ニョ", r: "nyo" }
+        ]
+      },
+      {
+        name: "Contracted (H, M, R)", nameKey: "grp_con2", entries: [
+          { h: "ひゃ", k: "ヒャ", r: "hya" }, { h: "ひゅ", k: "ヒュ", r: "hyu" }, { h: "ひょ", k: "ヒョ", r: "hyo" },
+          { h: "みゃ", k: "ミャ", r: "mya" }, { h: "みゅ", k: "ミュ", r: "myu" }, { h: "みょ", k: "ミョ", r: "myo" },
+          { h: "りゃ", k: "リャ", r: "rya" }, { h: "りゅ", k: "リュ", r: "ryu" }, { h: "りょ", k: "リョ", r: "ryo" }
+        ]
+      },
+      {
+        name: "Contracted Voiced", nameKey: "grp_con3", entries: [
+          { h: "ぎゃ", k: "ギャ", r: "gya" }, { h: "ぎゅ", k: "ギュ", r: "gyu" }, { h: "ぎょ", k: "ギョ", r: "gyo" },
+          { h: "じゃ", k: "ジャ", r: "ja", alt: ["jya", "zya"] }, { h: "じゅ", k: "ジュ", r: "ju", alt: ["jyu", "zyu"] }, { h: "じょ", k: "ジョ", r: "jo", alt: ["jyo", "zyo"] },
+          { h: "びゃ", k: "ビャ", r: "bya" }, { h: "びゅ", k: "ビュ", r: "byu" }, { h: "びょ", k: "ビョ", r: "byo" },
+          { h: "ぴゃ", k: "ピャ", r: "pya" }, { h: "ぴゅ", k: "ピュ", r: "pyu" }, { h: "ぴょ", k: "ピョ", r: "pyo" }
+        ]
+      }
     ];
 
     const MEMORIZE_THRESHOLD = 3;
@@ -956,6 +1133,8 @@
     let startTime = null;
     let currentEntry = null;
     let currentScript = null;  // 'h' or 'k'
+    let sprintTimer = null;
+    let sprintTimeLeft = 0;
 
     // ══════════════════════════════════════════
     //  DRAWING LOGIC
@@ -1040,12 +1219,43 @@
         ans = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       }
 
-      charEl.style.fontFamily = "'Noto Sans JP', sans-serif";
-      charEl.style.color = "";
-      charEl.innerHTML = `<span>${ans}</span>`;
-
       document.getElementById('draw-submit-area').style.display = 'none';
       document.getElementById('self-grade').style.display = 'flex';
+
+      const unicodeHex = ans.charCodeAt(0).toString(16).padStart(5, '0');
+      const svgUrl = `https://raw.githubusercontent.com/KanjiVG/kanjivg/master/kanji/${unicodeHex}.svg`;
+
+      // Temporary loading state
+      charEl.style.fontFamily = "'Inter', sans-serif";
+      charEl.style.color = "var(--muted)";
+      charEl.innerHTML = `<span style="font-size: 0.25em;">Loading stroke order...</span>`;
+
+      fetch(svgUrl)
+        .then(res => {
+          if (!res.ok) throw new Error("SVG missing");
+          return res.text();
+        })
+        .then(svgText => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(svgText, "image/svg+xml");
+          const paths = Array.from(doc.querySelectorAll('path'));
+
+          let svgContent = `<svg viewBox="0 0 109 109" style="width: 140px; height: 140px; display: inline-block;">`;
+          paths.forEach((p, index) => {
+            const d = p.getAttribute('d');
+            const delay = index * 1.0;
+            // Provide stroke order animation with delays
+            svgContent += `<path d="${d}" fill="none" class="stroke-anim" stroke="var(--text)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" style="animation-delay: ${delay}s;" />`;
+          });
+          svgContent += `</svg>`;
+          charEl.innerHTML = svgContent;
+        })
+        .catch(err => {
+          // Fallback to text string
+          charEl.style.fontFamily = "'Noto Sans JP', sans-serif";
+          charEl.style.color = "";
+          charEl.innerHTML = `<span>${ans}</span>`;
+        });
     });
 
     document.getElementById('btn-self-correct').addEventListener('click', () => submitAnswer(null, null, true));
@@ -1105,7 +1315,8 @@
 
         const lbl = document.createElement('label');
         lbl.htmlFor = masterCb.id;
-        lbl.textContent = group.name;
+        lbl.textContent = t(group.nameKey);
+        lbl.dataset.i18n = group.nameKey;
 
         const cnt = document.createElement('span');
         cnt.id = `grp-cnt-${gi}`;
@@ -1197,6 +1408,14 @@
       KANA_GROUPS.forEach((_, gi) => updateGroupState(gi));
     });
 
+    document.getElementById('btn-reset-stats').addEventListener('click', () => {
+      if (confirm(t('alert_reset_confirm'))) {
+        localStorage.removeItem('kanaQuizStats');
+        localStorage.removeItem('kanaQuizMistakes');
+        alert(t('alert_reset_done'));
+      }
+    });
+
     [
       { id: 'mode-normal', val: 'normal' },
       { id: 'mode-easy', val: 'easy' },
@@ -1231,15 +1450,48 @@
 
       // init stats
       stats = {};
+      try {
+        const savedStats = JSON.parse(localStorage.getItem('kanaQuizStats'));
+        if (savedStats) stats = savedStats;
+      } catch (e) { }
+
       selectedEntries.forEach(e => {
-        stats[e.r] = stats[e.r] || { h: { shown: 0, correct: 0 }, k: { shown: 0, correct: 0 } };
+        if (!stats[e.r]) {
+          stats[e.r] = { h: { shown: 0, correct: 0 }, k: { shown: 0, correct: 0 } };
+        }
       });
 
       sessionTotal = 0;
       sessionCorrect = 0;
       seenChars = new Set();
+
       mistakes = {};
+      try {
+        const savedMistakes = JSON.parse(localStorage.getItem('kanaQuizMistakes'));
+        if (savedMistakes) mistakes = savedMistakes;
+      } catch (e) { }
+
       startTime = Date.now();
+
+      if (document.getElementById('cb-sprint').checked) {
+        sprintTimeLeft = 60;
+        const timerEl = document.getElementById('q-timer');
+        timerEl.style.display = 'inline-block';
+        timerEl.textContent = `⏱️ ${sprintTimeLeft}s`;
+        sprintTimer = setInterval(() => {
+          sprintTimeLeft--;
+          if (sprintTimeLeft <= 0) {
+            clearInterval(sprintTimer);
+            sprintTimer = null;
+            timerEl.textContent = `⏱️ 0s`;
+            endSession();
+          } else {
+            timerEl.textContent = `⏱️ ${sprintTimeLeft}s`;
+          }
+        }, 1000);
+      } else {
+        document.getElementById('q-timer').style.display = 'none';
+      }
 
       showScreen('quiz');
       nextQuestion();
@@ -1260,13 +1512,13 @@
       const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       seenChars.add(scriptChar);
 
-      let headerLabel = currentScript === 'h' ? 'Hiragana' : 'Katakana';
-      if (isSimpleLike) {
-        headerLabel = 'Romaji → ' + (currentScript === 'h' ? 'Hiragana' : 'Katakana');
-      } else if (isKKLike) {
-        headerLabel = (currentScript === 'h' ? 'Hiragana' : 'Katakana') + ' → ' + (currentScript === 'h' ? 'Katakana' : 'Hiragana');
-      } else if (isAudioLike) {
-        headerLabel = 'Audio → ' + (currentScript === 'h' ? 'Hiragana' : 'Katakana');
+      let headerLabel = currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana');
+      if (currentMode === 'simple' || currentMode === 'draw') {
+        headerLabel = t('lbl_romaji') + ' → ' + (currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana'));
+      } else if (currentMode === 'easy-kk' || currentMode === 'draw-kk') {
+        headerLabel = (currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana')) + ' → ' + (currentScript === 'h' ? t('lbl_katakana') : t('lbl_hiragana'));
+      } else if (currentMode === 'audio-select' || currentMode === 'audio-draw') {
+        headerLabel = t('lbl_audio') + ' → ' + (currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana'));
       }
       document.getElementById('script-label').textContent = headerLabel;
 
@@ -1280,7 +1532,7 @@
       audioBtnDiv.style.display = 'none';
 
       if (isAudioLike) {
-        charEl.innerHTML = `<div style="font-size: 0.3em; color: var(--muted); margin-top: 10px;">Listen carefully!</div>`;
+        charEl.innerHTML = `<div style="font-size: 0.3em; color: var(--muted); margin-top: 10px;">${t('listen_label')}</div>`;
         audioBtnDiv.style.display = 'flex';
         playAudioChar(scriptChar);
       } else if (currentMode === 'draw' || currentMode === 'draw-kk') {
@@ -1381,6 +1633,10 @@
         correct = selfGradedCorrect;
       } else {
         correct = answer === expected;
+        // Check alt spelling
+        if (!correct && currentMode === 'normal' && currentEntry.alt && currentEntry.alt.includes(answer)) {
+          correct = true;
+        }
       }
 
       if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk' || currentMode === 'audio-select') {
@@ -1409,7 +1665,7 @@
 
         const mk = `${currentEntry.h}|${expected}`;
         if (!mistakes[mk]) {
-          mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'Hiragana' : 'Katakana', count: 0 };
+          mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'h' : 'k', count: 0 };
         }
         mistakes[mk].count++;
       }
@@ -1421,6 +1677,14 @@
       const wrong = sessionTotal - sessionCorrect;
       document.getElementById('q-score').innerHTML =
         `✓ ${sessionCorrect} &nbsp; ✗ ${wrong}`;
+
+      // Save stats
+      try {
+        localStorage.setItem('kanaQuizStats', JSON.stringify(stats));
+        localStorage.setItem('kanaQuizMistakes', JSON.stringify(mistakes));
+      } catch (e) {
+        console.error('Failed to save to localStorage', e);
+      }
     }
 
     function showFeedback(ok, expected) {
@@ -1479,6 +1743,11 @@
     }
 
     function endSession() {
+      if (sprintTimer) {
+        clearInterval(sprintTimer);
+        sprintTimer = null;
+      }
+
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const mins = Math.floor(elapsed / 60);
       const secs = elapsed % 60;
@@ -1526,13 +1795,13 @@
       const mkList = Object.values(mistakes).sort((a, b) => b.count - a.count);
       if (mkList.length) {
         document.getElementById('mistakes-section').style.display = 'block';
-        document.getElementById('mistakes-tbody').innerHTML = mkList.map(m =>
+        document.getElementById('mistakes-tbody').innerHTML = mkList.map(mistake =>
           `<tr>
-        <td>${m.entry.h}</td>
-        <td>${m.entry.k}</td>
-        <td class="roma">${m.entry.r}</td>
-        <td class="roma">${m.script}</td>
-        <td class="errs">${m.count}</td>
+        <td>${mistake.entry.h}</td>
+            <td>${mistake.entry.k}</td>
+            <td class="roma">${mistake.entry.r}</td>
+            <td class="roma">${mistake.script === 'h' ? t('lbl_hiragana') : t('lbl_katakana')}</td>
+            <td class="errs">${mistake.count}</td>
        </tr>`
         ).join('');
       } else {
@@ -1554,6 +1823,75 @@
       showScreen('select');
     });
 
+    // Review Weaknesses: auto-select Kana with past mistakes
+    document.getElementById('btn-review-weak').addEventListener('click', () => {
+      let savedMistakes = {};
+      try { savedMistakes = JSON.parse(localStorage.getItem('kanaQuizMistakes')) || {}; } catch (e) { }
+      const weakRomaji = new Set(Object.values(savedMistakes).map(m => m.entry.r));
+      if (weakRomaji.size === 0) {
+        alert(t('alert_no_weak'));
+        return;
+      }
+      getAllEntryCheckboxes().forEach(cb => {
+        const gi = parseInt(cb.dataset.gi);
+        const ei = parseInt(cb.dataset.ei);
+        const entry = KANA_GROUPS[gi].entries[ei];
+        cb.checked = weakRomaji.has(entry.r);
+      });
+      KANA_GROUPS.forEach((_, gi) => updateGroupState(gi));
+    });
+
+    // Progress Dashboard: render mastery grid from localStorage
+    document.getElementById('btn-progress').addEventListener('click', () => {
+      let savedStats = {};
+      try { savedStats = JSON.parse(localStorage.getItem('kanaQuizStats')) || {}; } catch (e) { }
+
+      const container = document.getElementById('progress-content');
+      container.innerHTML = '';
+
+      KANA_GROUPS.forEach(group => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'kana-mastery-group';
+        groupDiv.innerHTML = `<h3>${t(group.nameKey)}</h3>`;
+
+        const grid = document.createElement('div');
+        grid.className = 'kana-mastery-grid';
+
+        group.entries.forEach(entry => {
+          const s = savedStats[entry.r];
+          const cell = document.createElement('div');
+          cell.className = 'kana-mastery-cell';
+
+          // Compute overall mastery level (0=unseen, 1=struggling, 2=in progress, 3=memorized)
+          let level = 0;
+          if (s) {
+            const hMem = s.h && s.h.shown >= 3 && s.h.correct === s.h.shown;
+            const kMem = s.k && s.k.shown >= 3 && s.k.correct === s.k.shown;
+            const hSeen = s.h && s.h.shown > 0;
+            const kSeen = s.k && s.k.shown > 0;
+            if (hMem && kMem) level = 3;
+            else if (hSeen || kSeen) {
+              const totalShown = (s.h ? s.h.shown : 0) + (s.k ? s.k.shown : 0);
+              const totalCorrect = (s.h ? s.h.correct : 0) + (s.k ? s.k.correct : 0);
+              const accuracy = totalShown > 0 ? totalCorrect / totalShown : 0;
+              level = accuracy >= 0.7 ? 2 : 1;
+            }
+          }
+          cell.classList.add(`mastery-${level}`);
+          cell.innerHTML = `${entry.h}<sub>${entry.r}</sub>`;
+          cell.title = `${entry.h} / ${entry.k} (${entry.r})`;
+          grid.appendChild(cell);
+        });
+
+        groupDiv.appendChild(grid);
+        container.appendChild(groupDiv);
+      });
+
+      showScreen('progress');
+    });
+
+    document.getElementById('btn-progress-back').addEventListener('click', () => showScreen('select'));
+
     // ══════════════════════════════════════════
     //  SCREEN ROUTER
     // ══════════════════════════════════════════
@@ -1568,9 +1906,167 @@
     }
 
     // ══════════════════════════════════════════
+    //  I18N
+    // ══════════════════════════════════════════
+    const TRANSLATIONS = {
+      en: {
+        sel_subtitle: 'Select the kana you want to practice',
+        sel_all: 'Select All',
+        sel_none: 'Deselect All',
+        sel_review: 'Review Weaknesses',
+        sel_progress: 'Progress',
+        sel_reset: 'Reset Stats',
+        sel_sprint: 'Timed Sprint (60s)',
+        sel_start: 'Start Quiz',
+        quiz_end: 'End',
+        draw_clear: 'Clear',
+        draw_show: 'Show Answer',
+        draw_wrong: 'Incorrect',
+        draw_correct: 'Correct',
+        sum_title: 'Session Summary',
+        sum_memo_rule: 'Rule: ≥ 3 shown & all correct for both hiragana and katakana',
+        sum_newly_mem: 'Newly Memorized Characters',
+        sum_got_wrong: 'Characters you got wrong',
+        th_romaji: 'Romaji',
+        th_script: 'Script',
+        th_errors: 'Errors',
+        sum_retry: 'Practice Again',
+        sum_reselect: 'Change Selection',
+        prog_title: 'Progress',
+        prog_back: '← Back',
+        prog_struggling: 'Struggling',
+        prog_inprogress: 'In Progress',
+        prog_memorized: 'Memorized',
+        prog_unseen: 'Unseen',
+        alert_no_weak: 'No weakness data found yet. Complete a quiz session first!',
+        alert_reset_confirm: 'Are you sure you want to reset all your memorized stats and mistakes?',
+        alert_reset_done: 'Stats have been reset.',
+        listen_label: 'Listen carefully!',
+        grp_vowels: 'Vowels',
+        grp_k: 'K row',
+        grp_s: 'S row',
+        grp_t: 'T row',
+        grp_n: 'N row',
+        grp_h: 'H row',
+        grp_m: 'M row',
+        grp_y: 'Y row',
+        grp_r: 'R row',
+        grp_w: 'W row / N',
+        grp_g: 'G row (voiced)',
+        grp_z: 'Z row (voiced)',
+        grp_d: 'D row (voiced)',
+        grp_b: 'B row (voiced)',
+        grp_p: 'P row (semi-voiced)',
+        grp_con1: 'Contracted (K, S, T, N)',
+        grp_con2: 'Contracted (H, M, R)',
+        grp_con3: 'Contracted Voiced',
+        mode_type_kr: 'Type<br>(Kana→R)',
+        mode_sel_kr: 'Select<br>(Kana→R)',
+        mode_sel_hk: 'Select<br>(H↔K)',
+        mode_sel_ak: 'Select<br>(🔊→Kana)',
+        mode_sel_rk: 'Select<br>(R→Kana)',
+        mode_draw_rk: 'Draw<br>(R→Kana)',
+        mode_draw_hk: 'Draw<br>(H↔K)',
+        mode_draw_ak: 'Draw<br>(🔊→Kana)',
+        lbl_hiragana: 'Hiragana',
+        lbl_katakana: 'Katakana',
+        lbl_romaji: 'Romaji',
+        lbl_audio: 'Audio',
+      },
+      zh: {
+        sel_subtitle: '选择想要练习的假名',
+        sel_all: '全选',
+        sel_none: '取消全选',
+        sel_review: '复习弱项',
+        sel_progress: '学习进度',
+        sel_reset: '重置数据',
+        sel_sprint: '计时冲刺（60秒）',
+        sel_start: '开始测验',
+        quiz_end: '结束',
+        draw_clear: '清除',
+        draw_show: '显示答案',
+        draw_wrong: '错误',
+        draw_correct: '正确',
+        sum_title: '本次测验总结',
+        sum_memo_rule: '规则：展示次数≥3且平假名片假名均全正确方可记忆',
+        sum_newly_mem: '新记忆的字符',
+        sum_got_wrong: '回答错误的字符',
+        th_romaji: '罗马字',
+        th_script: '字母类型',
+        th_errors: '错误数',
+        sum_retry: '再练一次',
+        sum_reselect: '更换选项',
+        prog_title: '学习进度',
+        prog_back: '← 返回',
+        prog_struggling: '需加强练习',
+        prog_inprogress: '学习中',
+        prog_memorized: '已记忆',
+        prog_unseen: '未接触',
+        alert_no_weak: '暂无错误数据，请先完成一次测验！',
+        alert_reset_confirm: '确定要重置所有记忆数据和错误记录吗？',
+        alert_reset_done: '数据已重置。',
+        listen_label: '请认真聆听！',
+        grp_vowels: '母音',
+        grp_k: 'K行',
+        grp_s: 'S行',
+        grp_t: 'T行',
+        grp_n: 'N行',
+        grp_h: 'H行',
+        grp_m: 'M行',
+        grp_y: 'Y行',
+        grp_r: 'R行',
+        grp_w: 'W行 / N',
+        grp_g: 'G行（浊音）',
+        grp_z: 'Z行（浊音）',
+        grp_d: 'D行（浊音）',
+        grp_b: 'B行（浊音）',
+        grp_p: 'P行（半浊音）',
+        grp_con1: '拗音（K、S、T、N行）',
+        grp_con2: '拗音（H、M、R行）',
+        grp_con3: '拗音浊音',
+        mode_type_kr: '打字<br>(假名→罗)',
+        mode_sel_kr: '选择<br>(假名→罗)',
+        mode_sel_hk: '选择<br>(平↔片)',
+        mode_sel_ak: '选择<br>(🔊→假名)',
+        mode_sel_rk: '选择<br>(罗→假名)',
+        mode_draw_rk: '手写<br>(罗→假名)',
+        mode_draw_hk: '手写<br>(平↔片)',
+        mode_draw_ak: '手写<br>(🔊→假名)',
+        lbl_hiragana: '平假名',
+        lbl_katakana: '片假名',
+        lbl_romaji: '罗马字',
+        lbl_audio: '音频',
+      }
+    };
+
+    let currentLang = localStorage.getItem('kanaQuizLang') || 'en';
+
+    function t(key) {
+      return (TRANSLATIONS[currentLang] || TRANSLATIONS.en)[key] || TRANSLATIONS.en[key] || key;
+    }
+
+    function setLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('kanaQuizLang', lang);
+      document.getElementById('btn-lang').textContent = lang === 'en' ? 'EN' : '中文';
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.innerHTML = t(el.dataset.i18n);
+      });
+      // Update sel-count label
+      const checked = getAllEntryCheckboxes().filter(c => c.checked).length;
+      document.getElementById('sel-count').innerHTML =
+        `<strong>${checked}</strong> entr${checked === 1 ? 'y' : 'ies'} selected`;
+    }
+
+    function toggleLang() {
+      setLang(currentLang === 'en' ? 'zh' : 'en');
+    }
+
+    // ══════════════════════════════════════════
     //  INIT
     // ══════════════════════════════════════════
     buildSelectionScreen();
+    setLang(currentLang); // apply persisted language on load
 
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
