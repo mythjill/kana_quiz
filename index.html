@@ -158,7 +158,7 @@
     /* ── Mode Toggle ── */
     .mode-toggle {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 4px;
       background: var(--surface2);
       border-radius: 12px;
@@ -711,9 +711,11 @@
         <button id="mode-normal" class="active" style="font-size: 0.70rem;">Type<br>(K→R)</button>
         <button id="mode-easy" style="font-size: 0.70rem;">Select<br>(K→R)</button>
         <button id="mode-easy-kk" style="font-size: 0.70rem;">Select<br>(K→K)</button>
+        <button id="mode-audio-select" style="font-size: 0.70rem;">Select<br>(🔊→K)</button>
         <button id="mode-simple" style="font-size: 0.70rem;">Select<br>(R→K)</button>
         <button id="mode-draw" style="font-size: 0.70rem;">Draw<br>(R→K)</button>
         <button id="mode-draw-kk" style="font-size: 0.70rem;">Draw<br>(K→K)</button>
+        <button id="mode-audio-draw" style="font-size: 0.70rem;">Draw<br>(🔊→K)</button>
       </div>
 
       <div class="sel-controls">
@@ -727,7 +729,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260222-2105</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260222-2114</p>
       </footer>
     </div>
 
@@ -745,6 +747,11 @@
 
       <div class="card kana-display">
         <span class="script-badge" id="script-label">Hiragana</span>
+        <div id="audio-btn-container"
+          style="display: none; align-items: center; justify-content: center; margin-bottom: 10px; margin-top: -10px;">
+          <button class="btn btn-primary" id="btn-replay-audio"
+            style="border-radius: 50%; width: 50px; height: 50px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">🔊</button>
+        </div>
         <span class="kana-char" id="kana-char">あ</span>
       </div>
 
@@ -1045,6 +1052,38 @@
     document.getElementById('btn-self-wrong').addEventListener('click', () => submitAnswer(null, null, false));
 
     // ══════════════════════════════════════════
+    //  AUDIO LOGIC
+    // ══════════════════════════════════════════
+    let jpVoice = null;
+
+    function initSpeechSynthesis() {
+      const loadVoices = () => {
+        const voices = speechSynthesis.getVoices();
+        jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja')) || voices[0];
+      };
+
+      speechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
+    initSpeechSynthesis();
+
+    function playAudioChar(char) {
+      if (!('speechSynthesis' in window)) return;
+      const utterance = new SpeechSynthesisUtterance(char);
+      utterance.lang = 'ja-JP';
+      if (jpVoice) {
+        utterance.voice = jpVoice;
+      }
+      utterance.rate = 0.85; // Slightly slower for clarity
+      speechSynthesis.speak(utterance);
+    }
+
+    document.getElementById('btn-replay-audio').addEventListener('click', () => {
+      const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+      playAudioChar(scriptChar);
+    });
+
+    // ══════════════════════════════════════════
     //  SELECTION SCREEN
     // ══════════════════════════════════════════
     function buildSelectionScreen() {
@@ -1162,9 +1201,11 @@
       { id: 'mode-normal', val: 'normal' },
       { id: 'mode-easy', val: 'easy' },
       { id: 'mode-easy-kk', val: 'easy-kk' },
+      { id: 'mode-audio-select', val: 'audio-select' },
       { id: 'mode-simple', val: 'simple' },
       { id: 'mode-draw', val: 'draw' },
-      { id: 'mode-draw-kk', val: 'draw-kk' }
+      { id: 'mode-draw-kk', val: 'draw-kk' },
+      { id: 'mode-audio-draw', val: 'audio-draw' }
     ].forEach(m => {
       document.getElementById(m.id).addEventListener('click', (e) => {
         currentMode = m.val;
@@ -1211,10 +1252,11 @@
 
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
+      const isAudioLike = currentMode === 'audio-select' || currentMode === 'audio-draw';
 
       const char = isSimpleLike ? currentEntry.r : (currentScript === 'h' ? currentEntry.h : currentEntry.k);
 
-      // Still consider the target script as seen for stats, even if showing romaji
+      // Still consider the target script as seen for stats, even if showing romaji/playing audio
       const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       seenChars.add(scriptChar);
 
@@ -1223,15 +1265,25 @@
         headerLabel = 'Romaji → ' + (currentScript === 'h' ? 'Hiragana' : 'Katakana');
       } else if (isKKLike) {
         headerLabel = (currentScript === 'h' ? 'Hiragana' : 'Katakana') + ' → ' + (currentScript === 'h' ? 'Katakana' : 'Hiragana');
+      } else if (isAudioLike) {
+        headerLabel = 'Audio → ' + (currentScript === 'h' ? 'Hiragana' : 'Katakana');
       }
       document.getElementById('script-label').textContent = headerLabel;
 
       // Update font styling for the display character
       const charEl = document.getElementById('kana-char');
+      const audioBtnDiv = document.getElementById('audio-btn-container');
+
       charEl.style.fontFamily = isSimpleLike ? "'Inter', sans-serif" : "'Noto Sans JP', sans-serif";
       charEl.style.color = isSimpleLike ? "var(--accent2)" : "";
 
-      if (currentMode === 'draw' || currentMode === 'draw-kk') {
+      audioBtnDiv.style.display = 'none';
+
+      if (isAudioLike) {
+        charEl.innerHTML = `<div style="font-size: 0.3em; color: var(--muted); margin-top: 10px;">Listen carefully!</div>`;
+        audioBtnDiv.style.display = 'flex';
+        playAudioChar(scriptChar);
+      } else if (currentMode === 'draw' || currentMode === 'draw-kk') {
         charEl.innerHTML = `<span>${char}</span><div style="font-size: 0.2em; color: var(--muted); margin-top: 10px;">Draw above</div>`;
       } else {
         charEl.textContent = char;
@@ -1248,7 +1300,7 @@
       grid.style.display = 'none';
       inpRow.style.display = 'none';
 
-      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk') {
+      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk' || currentMode === 'audio-select') {
         inpRow.style.display = 'none';
         grid.style.display = 'grid';
         grid.innerHTML = '';
@@ -1257,7 +1309,7 @@
         let poolItems = [];
         let targetAns = '';
 
-        if (currentMode === 'simple') {
+        if (currentMode === 'simple' || currentMode === 'audio-select') {
           poolItems = selectedEntries.map(e => currentScript === 'h' ? e.h : e.k);
           targetAns = currentScript === 'h' ? currentEntry.h : currentEntry.k;
         } else if (currentMode === 'easy-kk') {
@@ -1282,12 +1334,12 @@
 
         options.forEach(opt => {
           const btn = document.createElement('button');
-          btn.className = (currentMode === 'simple' || currentMode === 'easy-kk') ? 'easy-btn simple-btn' : 'easy-btn';
+          btn.className = (currentMode === 'simple' || currentMode === 'easy-kk' || currentMode === 'audio-select') ? 'easy-btn simple-btn' : 'easy-btn';
           btn.textContent = opt;
           btn.onclick = () => submitAnswer(opt, btn);
           grid.appendChild(btn);
         });
-      } else if (currentMode === 'draw' || currentMode === 'draw-kk') {
+      } else if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') {
         drawArea.style.display = 'flex';
         document.getElementById('draw-submit-area').style.display = 'flex';
         document.getElementById('self-grade').style.display = 'none';
@@ -1310,9 +1362,10 @@
 
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
+      const isAudioLike = currentMode === 'audio-select' || currentMode === 'audio-draw';
 
       let expected = currentEntry.r;
-      if (isSimpleLike) {
+      if (isSimpleLike || isAudioLike) {
         expected = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       } else if (isKKLike) {
         expected = currentScript === 'h' ? currentEntry.k : currentEntry.h;
@@ -1324,13 +1377,13 @@
       formStat.shown++;
 
       let correct = false;
-      if (currentMode === 'draw' || currentMode === 'draw-kk') {
+      if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') {
         correct = selfGradedCorrect;
       } else {
         correct = answer === expected;
       }
 
-      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk') {
+      if (currentMode === 'easy' || currentMode === 'simple' || currentMode === 'easy-kk' || currentMode === 'audio-select') {
         document.querySelectorAll('.easy-btn').forEach(b => b.disabled = true);
         if (correct) {
           btnEl.classList.add('correct');
@@ -1348,10 +1401,10 @@
       if (correct) {
         sessionCorrect++;
         formStat.correct++;
-        if (currentMode === 'draw' || currentMode === 'draw-kk') setTimeout(() => nextQuestion(), 100);
+        if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') setTimeout(() => nextQuestion(), 100);
         else showFeedback(true, expected);
       } else {
-        if (currentMode === 'draw' || currentMode === 'draw-kk') setTimeout(() => nextQuestion(), 100);
+        if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') setTimeout(() => nextQuestion(), 100);
         else showFeedback(false, expected);
 
         const mk = `${currentEntry.h}|${expected}`;
