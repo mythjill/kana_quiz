@@ -19,6 +19,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;700&display=swap"
     rel="stylesheet" />
+  <script src="dictionary.js"></script>
   <style>
     *,
     *::before,
@@ -158,7 +159,7 @@
     /* ── Mode Toggle ── */
     .mode-toggle {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 4px;
       background: var(--surface2);
       border-radius: 12px;
@@ -379,6 +380,12 @@
       line-height: 1;
       display: block;
       transition: opacity .15s, transform .15s;
+      cursor: pointer;
+    }
+
+    .kana-char:active {
+      opacity: 0.6;
+      transform: scale(0.95);
     }
 
     .input-row {
@@ -545,6 +552,7 @@
       opacity: 0;
       transform: scale(.85);
       transition: opacity .18s, transform .18s;
+      text-align: center;
     }
 
     .feedback-bubble.show {
@@ -833,6 +841,8 @@
         <button id="mode-easy-kk" style="font-size: 0.65rem;" data-i18n="mode_sel_hk">Select<br>(H↔K)</button>
         <button id="mode-audio-select" style="font-size: 0.65rem;" data-i18n="mode_sel_ak">Select<br>(🔊→Kana)</button>
         <button id="mode-simple" style="font-size: 0.65rem;" data-i18n="mode_sel_rk">Select<br>(R→Kana)</button>
+        <button id="mode-read-word" style="font-size: 0.65rem;" data-i18n="mode_read_word">Read Word<br>(Type
+          Romaji)</button>
         <button id="mode-draw" style="font-size: 0.65rem;" data-i18n="mode_draw_rk">Draw<br>(R→Kana)</button>
         <button id="mode-draw-kk" style="font-size: 0.65rem;" data-i18n="mode_draw_hk">Draw<br>(H↔K)</button>
         <button id="mode-audio-draw" style="font-size: 0.65rem;" data-i18n="mode_draw_ak">Draw<br>(🔊→Kana)</button>
@@ -863,7 +873,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260222-2307</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260223-2318</p>
       </footer>
     </div>
 
@@ -1118,6 +1128,7 @@
       }
     ];
 
+    // JAPANESE_WORDS is now loaded from dictionary.js
     const MEMORIZE_THRESHOLD = 3;
 
     // ══════════════════════════════════════════
@@ -1293,6 +1304,18 @@
       playAudioChar(scriptChar);
     });
 
+    document.getElementById('kana-char').addEventListener('click', () => {
+      if (currentMode === 'read-word') {
+        playAudioChar(currentEntry.r);
+      } else {
+        const isAudioLike = currentMode === 'audio-select' || currentMode === 'audio-draw';
+        if (!isAudioLike) {
+          const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+          playAudioChar(scriptChar);
+        }
+      }
+    });
+
     // ══════════════════════════════════════════
     //  SELECTION SCREEN
     // ══════════════════════════════════════════
@@ -1423,6 +1446,7 @@
       { id: 'mode-audio-select', val: 'audio-select' },
       { id: 'mode-simple', val: 'simple' },
       { id: 'mode-draw', val: 'draw' },
+      { id: 'mode-read-word', val: 'read-word' },
       { id: 'mode-draw-kk', val: 'draw-kk' },
       { id: 'mode-audio-draw', val: 'audio-draw' }
     ].forEach(m => {
@@ -1441,12 +1465,51 @@
     function startQuiz() {
       // collect selected entries
       selectedEntries = [];
+      let allowedRomaji = new Set();
       getAllEntryCheckboxes().forEach(cb => {
         if (cb.checked) {
           const g = KANA_GROUPS[cb.dataset.gi];
-          selectedEntries.push(g.entries[cb.dataset.ei]);
+          const entry = g.entries[cb.dataset.ei];
+          if (currentMode !== 'read-word') {
+            selectedEntries.push(entry);
+          } else {
+            allowedRomaji.add(entry.r);
+            if (entry.alt) entry.alt.forEach(a => allowedRomaji.add(a));
+          }
         }
       });
+
+      if (currentMode === 'read-word') {
+        // Filter JAPANESE_WORDS to only those that can be formed by allowedRomaji
+        // Note: we check if the word's romaji can be broken down into allowed syllables.
+        // A simple check is to require the exact romaji to only contain allowed chunks.
+        // For a basic implementation, we just check if every character in the word's kana
+        // exists in the checked entries. But wait, JAPANESE_WORDS doesn't map kana to entries.
+        // Let's just collect all allowed Hiragana and Katakana characters into a Set.
+        let allowedChars = new Set();
+        getAllEntryCheckboxes().forEach(cb => {
+          if (cb.checked) {
+            const g = KANA_GROUPS[cb.dataset.gi];
+            const e = g.entries[cb.dataset.ei];
+            [...e.h].forEach(c => allowedChars.add(c));
+            [...e.k].forEach(c => allowedChars.add(c));
+          }
+        });
+
+        JAPANESE_WORDS.forEach(word => {
+          let canFormH = [...word.h].every(c => allowedChars.has(c));
+          let canFormK = [...word.k].every(c => allowedChars.has(c));
+          if (canFormH || canFormK) {
+            selectedEntries.push(word);
+          }
+        });
+
+        if (selectedEntries.length === 0) {
+          alert(t('alert_no_words') || "Not enough Kana selected to form any practice words. Please select more groups.");
+          showScreen('select');
+          return;
+        }
+      }
 
       // init stats
       stats = {};
@@ -1455,11 +1518,13 @@
         if (savedStats) stats = savedStats;
       } catch (e) { }
 
-      selectedEntries.forEach(e => {
-        if (!stats[e.r]) {
-          stats[e.r] = { h: { shown: 0, correct: 0 }, k: { shown: 0, correct: 0 } };
-        }
-      });
+      if (currentMode !== 'read-word') {
+        selectedEntries.forEach(e => {
+          if (!stats[e.r]) {
+            stats[e.r] = { h: { shown: 0, correct: 0 }, k: { shown: 0, correct: 0 } };
+          }
+        });
+      }
 
       sessionTotal = 0;
       sessionCorrect = 0;
@@ -1505,12 +1570,15 @@
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
       const isAudioLike = currentMode === 'audio-select' || currentMode === 'audio-draw';
+      const isReadWord = currentMode === 'read-word';
 
       const char = isSimpleLike ? currentEntry.r : (currentScript === 'h' ? currentEntry.h : currentEntry.k);
 
       // Still consider the target script as seen for stats, even if showing romaji/playing audio
-      const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
-      seenChars.add(scriptChar);
+      if (!isReadWord) {
+        const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+        seenChars.add(scriptChar);
+      }
 
       let headerLabel = currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana');
       if (currentMode === 'simple' || currentMode === 'draw') {
@@ -1519,8 +1587,10 @@
         headerLabel = (currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana')) + ' → ' + (currentScript === 'h' ? t('lbl_katakana') : t('lbl_hiragana'));
       } else if (currentMode === 'audio-select' || currentMode === 'audio-draw') {
         headerLabel = t('lbl_audio') + ' → ' + (currentScript === 'h' ? t('lbl_hiragana') : t('lbl_katakana'));
+      } else if (currentMode === 'read-word') {
+        headerLabel = t('mode_read_word').replace('<br>', ' ');
       }
-      document.getElementById('script-label').textContent = headerLabel;
+      document.getElementById('script-label').innerHTML = headerLabel;
 
       // Update font styling for the display character
       const charEl = document.getElementById('kana-char');
@@ -1610,7 +1680,7 @@
       const inp = document.getElementById('romaji-input');
       const answer = (optAnswer || inp.value).trim().toLowerCase();
       // Only block empty answers for normal text mode
-      if (!answer && currentMode === 'normal') return;
+      if (!answer && (currentMode === 'normal' || currentMode === 'read-word')) return;
 
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
@@ -1623,10 +1693,15 @@
         expected = currentScript === 'h' ? currentEntry.k : currentEntry.h;
       }
       const key = currentScript === 'h' ? 'h' : 'k';
-      const formStat = stats[currentEntry.r][key];
 
+      const isReadWord = currentMode === 'read-word';
+
+      // Record stats only for normal kana modes, avoid cluttering stats with full words for now
+      if (!isReadWord) {
+        const formStat = stats[currentEntry.r][key];
+        formStat.shown++;
+      }
       sessionTotal++;
-      formStat.shown++;
 
       let correct = false;
       if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') {
@@ -1649,25 +1724,34 @@
             if (b.textContent === expected) b.classList.add('correct');
           });
         }
-      } else if (currentMode === 'normal') {
+      } else if (currentMode === 'normal' || currentMode === 'read-word') {
         if (correct) inp.classList.add('correct');
         else inp.classList.add('wrong');
       }
 
       if (correct) {
         sessionCorrect++;
-        formStat.correct++;
+        if (!isReadWord) stats[currentEntry.r][key].correct++;
+
         if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') setTimeout(() => nextQuestion(), 100);
-        else showFeedback(true, expected);
+        else {
+          let extraTxt = isReadWord ? `${currentLang === 'zh' ? currentEntry.z : currentEntry.e}` : null;
+          showFeedback(true, expected, extraTxt);
+        }
       } else {
         if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') setTimeout(() => nextQuestion(), 100);
-        else showFeedback(false, expected);
-
-        const mk = `${currentEntry.h}|${expected}`;
-        if (!mistakes[mk]) {
-          mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'h' : 'k', count: 0 };
+        else {
+          let extraTxt = isReadWord ? `${currentLang === 'zh' ? currentEntry.z : currentEntry.e}` : null;
+          showFeedback(false, expected, extraTxt);
         }
-        mistakes[mk].count++;
+
+        if (!isReadWord) {
+          const mk = `${currentEntry.h}|${expected}`;
+          if (!mistakes[mk]) {
+            mistakes[mk] = { entry: currentEntry, script: currentScript === 'h' ? 'h' : 'k', count: 0 };
+          }
+          mistakes[mk].count++;
+        }
       }
 
       updateQuizMeta();
@@ -1687,13 +1771,17 @@
       }
     }
 
-    function showFeedback(ok, expected) {
+    function showFeedback(ok, expected, extraText = null) {
       const overlay = document.getElementById('feedback');
       const bubble = document.getElementById('feedback-bubble');
-      bubble.textContent = ok ? '✓ Correct!' : `✗  ${expected}`;
+
+      let baseTxt = ok ? '✓ Correct!' : `✗  ${expected}`;
+      if (extraText) baseTxt += `<br><small style="font-weight:normal; font-size:0.7em;">${extraText}</small>`;
+
+      bubble.innerHTML = baseTxt;
       bubble.className = `feedback-bubble ${ok ? 'ok' : 'bad'}`;
 
-      const duration = ok ? 800 : 2500; // Longer for errors
+      const duration = ok ? 800 : (extraText ? 3500 : 2500); // Longer for errors or words
 
       overlay.classList.add('active');
       requestAnimationFrame(() => {
@@ -1965,6 +2053,7 @@
         mode_sel_hk: 'Select<br>(H↔K)',
         mode_sel_ak: 'Select<br>(🔊→Kana)',
         mode_sel_rk: 'Select<br>(R→Kana)',
+        mode_read_word: 'Read Word<br>(Type Romaji)',
         mode_draw_rk: 'Draw<br>(R→Kana)',
         mode_draw_hk: 'Draw<br>(H↔K)',
         mode_draw_ak: 'Draw<br>(🔊→Kana)',
@@ -1972,6 +2061,7 @@
         lbl_katakana: 'Katakana',
         lbl_romaji: 'Romaji',
         lbl_audio: 'Audio',
+        alert_no_words: 'Not enough Kana selected to form any practice words. Please select more groups.',
       },
       zh: {
         sel_subtitle: '选择想要练习的假名',
@@ -2029,6 +2119,7 @@
         mode_sel_hk: '选择<br>(平↔片)',
         mode_sel_ak: '选择<br>(🔊→假名)',
         mode_sel_rk: '选择<br>(罗→假名)',
+        mode_read_word: '读单词<br>(打字)',
         mode_draw_rk: '手写<br>(罗→假名)',
         mode_draw_hk: '手写<br>(平↔片)',
         mode_draw_ak: '手写<br>(🔊→假名)',
@@ -2036,6 +2127,7 @@
         lbl_katakana: '片假名',
         lbl_romaji: '罗马字',
         lbl_audio: '音频',
+        alert_no_words: '所选假名不足以组成任何单词，请选择更多组别！',
       }
     };
 
@@ -2069,11 +2161,14 @@
     setLang(currentLang); // apply persisted language on load
 
     // Service Worker Registration
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then(reg => console.log('SW registered!', reg))
-          .catch(err => console.log('SW registration failed:', err));
+          .catch(err => {
+            if (err.message && err.message.includes('URL protocol')) return; // ignore local file:// execution error
+            console.log('SW registration failed:', err);
+          });
       });
     }
   </script>
