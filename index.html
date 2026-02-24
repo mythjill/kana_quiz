@@ -1574,9 +1574,10 @@
 
       const char = isSimpleLike ? currentEntry.r : (currentScript === 'h' ? currentEntry.h : currentEntry.k);
 
+      const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
+
       // Still consider the target script as seen for stats, even if showing romaji/playing audio
       if (!isReadWord) {
-        const scriptChar = currentScript === 'h' ? currentEntry.h : currentEntry.k;
         seenChars.add(scriptChar);
       }
 
