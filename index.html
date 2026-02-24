@@ -873,7 +873,7 @@
       <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260223-2318</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260224-0949</p>
       </footer>
     </div>
 
@@ -1134,7 +1134,8 @@
     // ══════════════════════════════════════════
     //  STATE
     // ══════════════════════════════════════════
-    let currentMode = 'normal'; // 'normal', 'easy', 'simple', 'draw'
+    let currentMode = 'normal'; // 'normal', 'easy', 'simple', 'draw', 'easy-kk', 'draw-kk', 'audio-select', 'audio-draw', 'read-word'
+    let feedbackActive = false; // guard against stacking feedback/nextQuestion calls
     let selectedEntries = [];   // entries chosen on selection screen
     let stats = {};             // romaji -> { h: {shown,correct}, k: {shown,correct} }
     let sessionTotal = 0;
@@ -1226,6 +1227,9 @@
       let ans = '';
       if (currentMode === 'draw-kk') {
         ans = currentScript === 'h' ? currentEntry.k : currentEntry.h;
+      } else if (currentMode === 'audio-draw') {
+        // Audio-draw: user heard the kana and must draw it
+        ans = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       } else {
         ans = currentScript === 'h' ? currentEntry.h : currentEntry.k;
       }
@@ -1306,7 +1310,7 @@
 
     document.getElementById('kana-char').addEventListener('click', () => {
       if (currentMode === 'read-word') {
-        playAudioChar(currentEntry.r);
+        playAudioChar(currentEntry.h); // speak hiragana, not romaji
       } else {
         const isAudioLike = currentMode === 'audio-select' || currentMode === 'audio-draw';
         if (!isAudioLike) {
@@ -1682,6 +1686,7 @@
       const answer = (optAnswer || inp.value).trim().toLowerCase();
       // Only block empty answers for normal text mode
       if (!answer && (currentMode === 'normal' || currentMode === 'read-word')) return;
+      if (feedbackActive) return; // prevent double-submit during feedback animation
 
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
@@ -1773,6 +1778,9 @@
     }
 
     function showFeedback(ok, expected, extraText = null) {
+      if (feedbackActive) return;
+      feedbackActive = true;
+
       const overlay = document.getElementById('feedback');
       const bubble = document.getElementById('feedback-bubble');
 
@@ -1790,7 +1798,10 @@
         setTimeout(() => {
           bubble.classList.remove('show');
           overlay.classList.remove('active');
-          setTimeout(() => nextQuestion(), 180);
+          setTimeout(() => {
+            feedbackActive = false;
+            nextQuestion();
+          }, 180);
         }, duration);
       });
     }
