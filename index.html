@@ -272,7 +272,6 @@
     /* custom checkbox */
     .kana-entry input[type=checkbox],
     .group-header input[type=checkbox] {
-      appearance: none;
       -webkit-appearance: none;
       appearance: none;
       width: 18px;
@@ -870,10 +869,10 @@
       </div>
 
       <p class="sel-count" id="sel-count">0 entries selected</p>
-      <button class="btn btn-primary" id="btn-start" disabled>Start Quiz</button>
+      <button class="btn btn-primary" id="btn-start" disabled data-i18n="sel_start">Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260224-0949</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260225-2227</p>
       </footer>
     </div>
 
@@ -1136,6 +1135,7 @@
     // ══════════════════════════════════════════
     let currentMode = 'normal'; // 'normal', 'easy', 'simple', 'draw', 'easy-kk', 'draw-kk', 'audio-select', 'audio-draw', 'read-word'
     let feedbackActive = false; // guard against stacking feedback/nextQuestion calls
+    let sessionActive = false;  // guard against sprint timer race condition
     let selectedEntries = [];   // entries chosen on selection screen
     let stats = {};             // romaji -> { h: {shown,correct}, k: {shown,correct} }
     let sessionTotal = 0;
@@ -1280,11 +1280,31 @@
     //  AUDIO LOGIC
     // ══════════════════════════════════════════
     let jpVoice = null;
+    let audioPlaying = false;
+    let currentAudio = null;
 
     function initSpeechSynthesis() {
       const loadVoices = () => {
         const voices = speechSynthesis.getVoices();
-        jpVoice = voices.find(v => v.lang === 'ja-JP' || v.lang.startsWith('ja')) || voices[0];
+        const jaVoices = voices.filter(v => v.lang === 'ja-JP' || v.lang.startsWith('ja'));
+
+        if (jaVoices.length > 0) {
+          // Prefer high-quality voices: Google > Kyoko > O-Ren > any non-compact
+          const preferred = ['google', 'kyoko', 'o-ren', 'haruka', 'sayaka', 'enhanced', 'premium'];
+          const avoid = ['compact', 'espeak'];
+
+          jpVoice = jaVoices.find(v => {
+            const name = v.name.toLowerCase();
+            return preferred.some(p => name.includes(p)) && !avoid.some(a => name.includes(a));
+          });
+
+          if (!jpVoice) {
+            // Pick any non-compact Japanese voice
+            jpVoice = jaVoices.find(v => !avoid.some(a => v.name.toLowerCase().includes(a)));
+          }
+
+          if (!jpVoice) jpVoice = jaVoices[0];
+        }
       };
 
       speechSynthesis.onvoiceschanged = loadVoices;
@@ -1293,13 +1313,47 @@
     initSpeechSynthesis();
 
     function playAudioChar(char) {
+      if (audioPlaying) return;
+      audioPlaying = true;
+
+      // Stop any currently playing audio
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      speechSynthesis.cancel();
+
+      // Primary: Google Translate TTS (much higher quality Japanese pronunciation)
+      const encoded = encodeURIComponent(char);
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=${encoded}`;
+
+      const audio = new Audio(ttsUrl);
+      currentAudio = audio;
+      audio.playbackRate = 0.9;
+
+      const unlock = () => { audioPlaying = false; };
+
+      audio.onended = unlock;
+      audio.onerror = () => {
+        // Fallback: SpeechSynthesis
+        unlock();
+        playAudioFallback(char);
+      };
+
+      audio.play().catch(() => {
+        unlock();
+        playAudioFallback(char);
+      });
+    }
+
+    function playAudioFallback(char) {
       if (!('speechSynthesis' in window)) return;
       const utterance = new SpeechSynthesisUtterance(char);
       utterance.lang = 'ja-JP';
-      if (jpVoice) {
-        utterance.voice = jpVoice;
-      }
-      utterance.rate = 0.85; // Slightly slower for clarity
+      if (jpVoice) utterance.voice = jpVoice;
+      utterance.rate = 0.8;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
       speechSynthesis.speak(utterance);
     }
 
@@ -1421,7 +1475,7 @@
     function updateSelCount() {
       const checked = getAllEntryCheckboxes().filter(c => c.checked).length;
       document.getElementById('sel-count').innerHTML =
-        `<strong>${checked}</strong> entr${checked === 1 ? 'y' : 'ies'} selected`;
+        `<strong>${checked}</strong> ${t('sel_count_label')}`;
       document.getElementById('btn-start').disabled = checked === 0;
     }
 
@@ -1457,7 +1511,7 @@
       document.getElementById(m.id).addEventListener('click', (e) => {
         currentMode = m.val;
         document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
+        e.currentTarget.classList.add('active');
       });
     });
 
@@ -1562,6 +1616,7 @@
         document.getElementById('q-timer').style.display = 'none';
       }
 
+      sessionActive = true;
       showScreen('quiz');
       nextQuestion();
       document.getElementById('romaji-input').focus();
@@ -1698,6 +1753,9 @@
       } else if (isKKLike) {
         expected = currentScript === 'h' ? currentEntry.k : currentEntry.h;
       }
+
+      // Normalize macrons for typed romaji comparison (read-word / normal modes)
+      const normalizeMacrons = s => s.replace(/ō/g, 'ou').replace(/ū/g, 'uu').replace(/ē/g, 'ei').replace(/ā/g, 'aa').replace(/ī/g, 'ii');
       const key = currentScript === 'h' ? 'h' : 'k';
 
       const isReadWord = currentMode === 'read-word';
@@ -1713,7 +1771,7 @@
       if (currentMode === 'draw' || currentMode === 'draw-kk' || currentMode === 'audio-draw') {
         correct = selfGradedCorrect;
       } else {
-        correct = answer === expected;
+        correct = answer === expected || normalizeMacrons(answer) === normalizeMacrons(expected);
         // Check alt spelling
         if (!correct && currentMode === 'normal' && currentEntry.alt && currentEntry.alt.includes(answer)) {
           correct = true;
@@ -1800,7 +1858,7 @@
           overlay.classList.remove('active');
           setTimeout(() => {
             feedbackActive = false;
-            nextQuestion();
+            if (sessionActive) nextQuestion();
           }, 180);
         }, duration);
       });
@@ -1843,6 +1901,8 @@
     }
 
     function endSession() {
+      sessionActive = false;
+
       if (sprintTimer) {
         clearInterval(sprintTimer);
         sprintTimer = null;
@@ -1858,12 +1918,12 @@
       // stats grid
       const grid = document.getElementById('stats-grid');
       const statsData = [
-        { val: sessionTotal, lbl: 'Questions' },
-        { val: sessionCorrect, lbl: 'Correct' },
-        { val: wrong, lbl: 'Incorrect' },
-        { val: seenChars.size, lbl: 'Distinct Chars' },
-        { val: `${mins}m ${String(secs).padStart(2, '0')}s`, lbl: 'Duration', full: false },
-        { val: `${score}%`, lbl: 'Score', full: false },
+        { val: sessionTotal, lbl: t('stat_questions') },
+        { val: sessionCorrect, lbl: t('stat_correct') },
+        { val: wrong, lbl: t('stat_incorrect') },
+        { val: seenChars.size, lbl: t('stat_distinct') },
+        { val: `${mins}m ${String(secs).padStart(2, '0')}s`, lbl: t('stat_duration'), full: false },
+        { val: `${score}%`, lbl: t('stat_score'), full: false },
       ];
       grid.innerHTML = statsData.map(s =>
         `<div class="stat-box${s.full ? ' full' : ''}">
@@ -2074,6 +2134,13 @@
         lbl_romaji: 'Romaji',
         lbl_audio: 'Audio',
         alert_no_words: 'Not enough Kana selected to form any practice words. Please select more groups.',
+        sel_count_label: 'entries selected',
+        stat_questions: 'Questions',
+        stat_correct: 'Correct',
+        stat_incorrect: 'Incorrect',
+        stat_distinct: 'Distinct Chars',
+        stat_duration: 'Duration',
+        stat_score: 'Score',
       },
       zh: {
         sel_subtitle: '选择想要练习的假名',
@@ -2140,6 +2207,13 @@
         lbl_romaji: '罗马字',
         lbl_audio: '音频',
         alert_no_words: '所选假名不足以组成任何单词，请选择更多组别！',
+        sel_count_label: '个已选',
+        stat_questions: '题目数',
+        stat_correct: '正确',
+        stat_incorrect: '错误',
+        stat_distinct: '不同字符',
+        stat_duration: '用时',
+        stat_score: '得分',
       }
     };
 
@@ -2157,9 +2231,7 @@
         el.innerHTML = t(el.dataset.i18n);
       });
       // Update sel-count label
-      const checked = getAllEntryCheckboxes().filter(c => c.checked).length;
-      document.getElementById('sel-count').innerHTML =
-        `<strong>${checked}</strong> entr${checked === 1 ? 'y' : 'ies'} selected`;
+      updateSelCount();
     }
 
     function toggleLang() {
