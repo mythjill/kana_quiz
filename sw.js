@@ -1,9 +1,12 @@
-const CACHE_NAME = 'kana-quiz-v1';
+const CACHE_NAME = 'kana-quiz-v2';
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
-    './icon.svg'
+    './dictionary.js',
+    './icon.svg',
+    './icon-192.png',
+    './icon-512.png'
 ];
 
 // Install event: cache assets

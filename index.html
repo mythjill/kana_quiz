@@ -847,6 +847,29 @@
         <button id="mode-audio-draw" style="font-size: 0.65rem;" data-i18n="mode_draw_ak">Draw<br>(🔊→Kana)</button>
       </div>
 
+      <div class="sel-controls" style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <label
+          style="color: var(--text); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="cb-sprint" style="cursor: pointer;"> <span data-i18n="sel_sprint">Timed Sprint
+            (60s)</span>
+        </label>
+        <label
+          style="color: var(--text); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="cb-practice" style="cursor: pointer;"> <span data-i18n="sel_practice">Practice Mode
+            (No Stats)</span>
+        </label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="sel-char-mode" style="color: var(--text); font-size: 0.9rem;" data-i18n="sel_char_mode">Character
+            Mode:</label>
+          <select id="sel-char-mode" disabled
+            style="background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 0.85rem; outline: none;">
+            <option value="all" data-i18n="opt_all">All</option>
+            <option value="h" data-i18n="opt_hiragana_only">Hiragana Only</option>
+            <option value="k" data-i18n="opt_katakana_only">Katakana Only</option>
+          </select>
+        </div>
+      </div>
+
       <div class="sel-controls" style="flex-wrap: wrap; gap: 6px;">
         <button class="btn btn-outline" id="btn-all" data-i18n="sel_all">Select All</button>
         <button class="btn btn-outline" id="btn-none" data-i18n="sel_none">Deselect All</button>
@@ -860,19 +883,11 @@
 
       <div id="group-list"><!-- rendered by JS --></div>
 
-      <div class="sel-controls" style="margin-top: 15px; display: flex; align-items: center;">
-        <label
-          style="color: var(--text); font-size: 0.9rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" id="cb-sprint" style="cursor: pointer;"> <span data-i18n="sel_sprint">Timed Sprint
-            (60s)</span>
-        </label>
-      </div>
-
-      <p class="sel-count" id="sel-count">0 entries selected</p>
+      <p class="sel-count" id="sel-count" style="margin-top: 10px;">0 entries selected</p>
       <button class="btn btn-primary" id="btn-start" disabled data-i18n="sel_start">Start Quiz</button>
 
       <footer class="footer">
-        <p>&copy; 2026 Dave Wang | Version: 20260225-2227</p>
+        <p>&copy; 2026 Dave Wang | Version: 20260227-2212</p>
       </footer>
     </div>
 
@@ -933,7 +948,7 @@
 
       <div class="stats-grid" id="stats-grid"><!-- filled by JS --></div>
 
-      <div class="card">
+      <div class="card" id="memo-card">
         <div class="memo-label" id="memo-label">Memorized 0 / 0 entries</div>
         <div class="memo-bar">
           <div class="memo-bar-fill" id="memo-fill" style="width:0%"></div>
@@ -1147,6 +1162,7 @@
     let currentScript = null;  // 'h' or 'k'
     let sprintTimer = null;
     let sprintTimeLeft = 0;
+    let isPracticeMode = false;
 
     // ══════════════════════════════════════════
     //  DRAWING LOGIC
@@ -1497,6 +1513,16 @@
       }
     });
 
+    document.getElementById('cb-practice').addEventListener('change', (e) => {
+      const charModeSelect = document.getElementById('sel-char-mode');
+      if (e.target.checked) {
+        charModeSelect.disabled = false;
+      } else {
+        charModeSelect.disabled = true;
+        charModeSelect.value = 'all';
+      }
+    });
+
     [
       { id: 'mode-normal', val: 'normal' },
       { id: 'mode-easy', val: 'easy' },
@@ -1595,6 +1621,7 @@
       } catch (e) { }
 
       startTime = Date.now();
+      isPracticeMode = document.getElementById('cb-practice').checked;
 
       if (document.getElementById('cb-sprint').checked) {
         sprintTimeLeft = 60;
@@ -1624,7 +1651,17 @@
 
     function nextQuestion() {
       currentEntry = selectedEntries[Math.floor(Math.random() * selectedEntries.length)];
-      currentScript = Math.random() < 0.5 ? 'h' : 'k';
+
+      let charMode = document.getElementById('sel-char-mode').value;
+      if (!isPracticeMode) charMode = 'all';
+
+      if (charMode === 'h') {
+        currentScript = 'h';
+      } else if (charMode === 'k') {
+        currentScript = 'k';
+      } else {
+        currentScript = Math.random() < 0.5 ? 'h' : 'k';
+      }
 
       const isSimpleLike = currentMode === 'simple' || currentMode === 'draw';
       const isKKLike = currentMode === 'easy-kk' || currentMode === 'draw-kk';
@@ -1827,11 +1864,13 @@
         `✓ ${sessionCorrect} &nbsp; ✗ ${wrong}`;
 
       // Save stats
-      try {
-        localStorage.setItem('kanaQuizStats', JSON.stringify(stats));
-        localStorage.setItem('kanaQuizMistakes', JSON.stringify(mistakes));
-      } catch (e) {
-        console.error('Failed to save to localStorage', e);
+      if (!isPracticeMode) {
+        try {
+          localStorage.setItem('kanaQuizStats', JSON.stringify(stats));
+          localStorage.setItem('kanaQuizMistakes', JSON.stringify(mistakes));
+        } catch (e) {
+          console.error('Failed to save to localStorage', e);
+        }
       }
     }
 
@@ -1933,22 +1972,28 @@
       ).join('');
 
       // memorization bar
-      const newlyMemorized = selectedEntries.filter(isEntryMemorized);
-      const memorizedCount = newlyMemorized.length;
-      const pct = selectedEntries.length ? (memorizedCount / selectedEntries.length * 100) : 0;
-      document.getElementById('memo-fill').style.width = pct + '%';
-      document.getElementById('memo-label').textContent =
-        `Memorized ${memorizedCount} / ${selectedEntries.length} entries`;
-
-      const memoResults = document.getElementById('memo-results');
-      const memoList = document.getElementById('memo-list');
-      if (newlyMemorized.length > 0) {
-        memoResults.style.display = 'block';
-        memoList.innerHTML = newlyMemorized.map(e =>
-          `<div class="memo-tag">${e.h} / ${e.k} (${e.r})</div>`
-        ).join('');
+      const memoCard = document.getElementById('memo-card');
+      if (isPracticeMode) {
+        memoCard.style.display = 'none';
       } else {
-        memoResults.style.display = 'none';
+        memoCard.style.display = 'block';
+        const newlyMemorized = selectedEntries.filter(isEntryMemorized);
+        const memorizedCount = newlyMemorized.length;
+        const pct = selectedEntries.length ? (memorizedCount / selectedEntries.length * 100) : 0;
+        document.getElementById('memo-fill').style.width = pct + '%';
+        document.getElementById('memo-label').textContent =
+          `Memorized ${memorizedCount} / ${selectedEntries.length} entries`;
+
+        const memoResults = document.getElementById('memo-results');
+        const memoList = document.getElementById('memo-list');
+        if (newlyMemorized.length > 0) {
+          memoResults.style.display = 'block';
+          memoList.innerHTML = newlyMemorized.map(e =>
+            `<div class="memo-tag">${e.h} / ${e.k} (${e.r})</div>`
+          ).join('');
+        } else {
+          memoResults.style.display = 'none';
+        }
       }
 
       // mistakes table
@@ -2077,6 +2122,11 @@
         sel_progress: 'Progress',
         sel_reset: 'Reset Stats',
         sel_sprint: 'Timed Sprint (60s)',
+        sel_practice: 'Practice',
+        sel_char_mode: 'Character:',
+        opt_all: 'All',
+        opt_hiragana_only: 'Hiragana',
+        opt_katakana_only: 'Katakana',
         sel_start: 'Start Quiz',
         quiz_end: 'End',
         draw_clear: 'Clear',
@@ -2150,6 +2200,11 @@
         sel_progress: '学习进度',
         sel_reset: '重置数据',
         sel_sprint: '计时冲刺（60秒）',
+        sel_practice: '练习模式',
+        sel_char_mode: '字符模式：',
+        opt_all: '全部',
+        opt_hiragana_only: '平假名',
+        opt_katakana_only: '片假名',
         sel_start: '开始测验',
         quiz_end: '结束',
         draw_clear: '清除',
